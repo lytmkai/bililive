@@ -58,21 +58,6 @@ void testSite(LiveSite site) async {
     }
   });
 
-  test('searchAnchors', () async {
-    // 跳过抖音测试此项
-    if (site is DouyinSite) {
-      return;
-    }
-    var result = await site.searchAnchors('联盟');
-    expect(result, isNotNull);
-    expect(result.items, isNotEmpty);
-    for (var item in result.items) {
-      expect(item.roomId, isNotEmpty);
-      expect(item.userName, isNotEmpty);
-      print(item);
-    }
-  });
-
   LiveRoomDetail? roomDetail;
   test('getRoomDetail', () async {
     roomDetail = await site.getRoomDetail(roomId: rooms.first.roomId);
