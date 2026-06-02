@@ -46,7 +46,7 @@ class FollowService extends GetxService {
     List<FollowUser> live = [];
     List<FollowUser> notLive = [];
 
-    for (var user in followList) {
+    for (var user in followList.toList()) {
       try {
         var siteInfo = Sites.allSites[user.siteId];
         if (siteInfo == null) continue;
