@@ -38,15 +38,16 @@ class FollowUserController extends BasePageController<FollowUser> {
   }
 
   void filterData() {
+    // 先拷贝再赋值，避免遍历时 RxList 被并发修改
     switch (filterMode.value) {
       case 0:
-        list.assignAll(FollowService.instance.followList);
+        list.assignAll(FollowService.instance.followList.toList());
         break;
       case 1:
-        list.assignAll(FollowService.instance.liveList);
+        list.assignAll(FollowService.instance.liveList.toList());
         break;
       case 2:
-        list.assignAll(FollowService.instance.notLiveList);
+        list.assignAll(FollowService.instance.notLiveList.toList());
         break;
     }
   }
