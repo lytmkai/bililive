@@ -104,9 +104,6 @@ class AppSettingsController extends GetxController {
     isDynamic.value = LocalStorageService.instance
         .getValue(LocalStorageService.kIsDynamic, false);
 
-    bilibiliLoginTip.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kBilibiliLoginTip, true);
-
     playerBufferSize.value = LocalStorageService.instance
         .getValue(LocalStorageService.kPlayerBufferSize, 32);
 
@@ -143,15 +140,6 @@ class AppSettingsController extends GetxController {
       LocalStorageService.kVideoHardwareDecoder,
       Platform.isAndroid ? "auto-safe" : "auto",
     );
-
-    autoUpdateFollowEnable.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kAutoUpdateFollowEnable, true);
-
-    autoUpdateFollowDuration.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kUpdateFollowDuration, 10);
-
-    updateFollowThreadCount.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0);  // 默认 0 = 自动
 
     initSiteSort();
     initHomeSort();
@@ -463,13 +451,6 @@ class AppSettingsController extends GetxController {
         .setValue(LocalStorageService.kDanmuBottomMargin, e);
   }
 
-  var bilibiliLoginTip = true.obs;
-  void setBiliBiliLoginTip(bool e) {
-    bilibiliLoginTip.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kBilibiliLoginTip, e);
-  }
-
   var logEnable = false.obs;
   void setLogEnable(bool e) {
     logEnable.value = e;
@@ -502,27 +483,6 @@ class AppSettingsController extends GetxController {
     videoHardwareDecoder.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kVideoHardwareDecoder, e);
-  }
-
-  var autoUpdateFollowEnable = false.obs;
-  void setAutoUpdateFollowEnable(bool e) {
-    autoUpdateFollowEnable.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAutoUpdateFollowEnable, e);
-  }
-
-  var autoUpdateFollowDuration = 10.obs;
-  void setAutoUpdateFollowDuration(int e) {
-    autoUpdateFollowDuration.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kUpdateFollowDuration, e);
-  }
-
-  var updateFollowThreadCount = 4.obs;
-  void setUpdateFollowThreadCount(int e) {
-    updateFollowThreadCount.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kUpdateFollowThreadCount, e);
   }
 
   var playerForceHttps = false.obs;

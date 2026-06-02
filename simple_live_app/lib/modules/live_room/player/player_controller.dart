@@ -20,7 +20,7 @@ import 'package:simple_live_app/app/custom_throttle.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:window_manager/window_manager.dart';
+
 
 mixin PlayerMixin {
   GlobalKey<VideoState> globalPlayerKey = GlobalKey<VideoState>();
@@ -274,76 +274,25 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 进入全屏
   void enterFullScreen() {
     fullScreenState.value = true;
-    if (Platform.isAndroid || Platform.isIOS) {
-      //全屏
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-      if (!isVertical.value) {
-        //横屏
-        setLandscapeOrientation();
-      }
-    } else {
-      windowManager.setFullScreen(true);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+    if (!isVertical.value) {
+      setLandscapeOrientation();
     }
-    //danmakuController?.clear();
   }
 
   /// 退出全屏
   void exitFull() {
-    if (Platform.isAndroid || Platform.isIOS) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
-          overlays: SystemUiOverlay.values);
-      setPortraitOrientation();
-    } else {
-      windowManager.setFullScreen(false);
-    }
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
+        overlays: SystemUiOverlay.values);
+    setPortraitOrientation();
     fullScreenState.value = false;
-
-    //danmakuController?.clear();
   }
 
-  Size? _lastWindowSize;
-  Offset? _lastWindowPosition;
+  ///小窗模式 (仅桌面端支持)
+  void enterSmallWindow() async {}
 
-  ///小窗模式()
-  void enterSmallWindow() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      fullScreenState.value = true;
-      smallWindowState.value = true;
-
-      // 读取窗口大小
-      _lastWindowSize = await windowManager.getSize();
-      _lastWindowPosition = await windowManager.getPosition();
-
-      windowManager.setTitleBarStyle(TitleBarStyle.hidden);
-      // 获取视频窗口大小
-      var width = player.state.width ?? 16;
-      var height = player.state.height ?? 9;
-
-      // 横屏还是竖屏
-      if (height > width) {
-        var aspectRatio = width / height;
-        windowManager.setSize(Size(400, 400 / aspectRatio));
-      } else {
-        var aspectRatio = height / width;
-        windowManager.setSize(Size(280 / aspectRatio, 280));
-      }
-
-      windowManager.setAlwaysOnTop(true);
-    }
-  }
-
-  ///退出小窗模式()
-  void exitSmallWindow() {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      fullScreenState.value = false;
-      smallWindowState.value = false;
-      windowManager.setTitleBarStyle(TitleBarStyle.normal);
-      windowManager.setSize(_lastWindowSize!);
-      windowManager.setPosition(_lastWindowPosition!);
-      windowManager.setAlwaysOnTop(false);
-      //windowManager.setAlignment(Alignment.center);
-    }
-  }
+  ///退出小窗模式 (仅桌面端支持)
+  void exitSmallWindow() {}
 
   /// 设置横屏
   Future setLandscapeOrientation() async {

@@ -7,14 +7,9 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
-import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
-import 'package:simple_live_app/services/follow_service.dart';
-import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
-import 'package:simple_live_app/widgets/follow_user_item.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:simple_live_app/widgets/superchat_card.dart';
 import 'dart:async';
 import 'package:simple_live_core/simple_live_core.dart';
@@ -44,8 +39,7 @@ Widget buildFullControls(
 ) {
   var padding = MediaQuery.of(videoState.context).padding;
   GlobalKey volumeButtonkey = GlobalKey();
-  return DragToMoveArea(
-    child: Stack(
+  return Stack(
       children: [
         Container(),
         buildDanmuView(videoState, controller),
@@ -85,7 +79,6 @@ Widget buildFullControls(
               if (controller.lockControlsState.value) {
                 return;
               }
-              showFollowUser(controller);
             },
             onVerticalDragStart: controller.onVerticalDragStart,
             onVerticalDragUpdate: controller.onVerticalDragUpdate,
@@ -176,16 +169,7 @@ Widget buildFullControls(
                       size: 24,
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      showFollowUser(controller);
-                    },
-                    icon: const Icon(
-                      Remix.play_list_2_line,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
+
                   Visibility(
                     visible: Platform.isAndroid,
                     child: IconButton(
@@ -394,7 +378,6 @@ Widget buildFullControls(
           ),
         ),
       ],
-    ),
   );
 }
 
@@ -841,59 +824,6 @@ void showPlayerSettings(LiveRoomController controller) {
             ),
           ],
         ),
-      ),
-    ),
-  );
-}
-
-void showFollowUser(LiveRoomController controller) {
-  if (controller.isVertical.value) {
-    controller.showFollowUserSheet();
-    return;
-  }
-
-  Utils.showRightDialog(
-    title: "关注列表",
-    width: 400,
-    useSystem: true,
-    child: Obx(
-      () => Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: FollowService.instance.loadData,
-            child: ListView.builder(
-              itemCount: FollowService.instance.liveList.length,
-              itemBuilder: (_, i) {
-                var item = FollowService.instance.liveList[i];
-                return Obx(
-                  () => FollowUserItem(
-                    item: item,
-                    playing: controller.rxSite.value.id == item.siteId &&
-                        controller.rxRoomId.value == item.roomId,
-                    onTap: () {
-                      Utils.hideRightDialog();
-                      controller.resetRoom(
-                        Sites.allSites[item.siteId]!,
-                        item.roomId,
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-          if (Platform.isLinux || Platform.isWindows || Platform.isMacOS)
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Obx(
-                () => DesktopRefreshButton(
-                  refreshing: FollowService.instance.updating.value,
-                  onPressed: FollowService.instance.loadData,
-                ),
-              ),
-            ),
-        ],
       ),
     ),
   );

@@ -7,15 +7,10 @@ import 'package:lottie/lottie.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
-import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
-import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
-import 'package:simple_live_app/services/follow_service.dart';
-import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
-import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/keep_alive_wrapper.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
 import 'package:simple_live_app/widgets/settings/settings_action.dart';
@@ -185,26 +180,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 onPressed: controller.refreshRoom,
                 icon: const Icon(Remix.refresh_line),
                 label: const Text("刷新"),
-              ),
-              AppStyle.hGap4,
-              Obx(
-                () => controller.followed.value
-                    ? TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
-                        onPressed: controller.removeFollowUser,
-                        icon: const Icon(Remix.heart_fill),
-                        label: const Text("取消关注"),
-                      )
-                    : TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
-                        onPressed: controller.followUser,
-                        icon: const Icon(Remix.heart_line),
-                        label: const Text("关注"),
-                      ),
               ),
               const Expanded(child: Center()),
               TextButton.icon(
@@ -384,58 +359,37 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         ),
       ),
       padding: EdgeInsets.only(bottom: AppStyle.bottomBarHeight),
-      child: Row(
-        children: [
-          Expanded(
-            child: Obx(
-              () => controller.followed.value
-                  ? TextButton.icon(
-                      style: TextButton.styleFrom(
-                        textStyle: const TextStyle(fontSize: 14),
-                      ),
-                      onPressed: controller.removeFollowUser,
-                      icon: const Icon(Remix.heart_fill),
-                      label: const Text("取消关注"),
-                    )
-                  : TextButton.icon(
-                      style: TextButton.styleFrom(
-                        textStyle: const TextStyle(fontSize: 14),
-                      ),
-                      onPressed: controller.followUser,
-                      icon: const Icon(Remix.heart_line),
-                      label: const Text("关注"),
-                    ),
-            ),
-          ),
-          Expanded(
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                textStyle: const TextStyle(fontSize: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  textStyle: const TextStyle(fontSize: 14),
+                ),
+                onPressed: controller.refreshRoom,
+                icon: const Icon(Remix.refresh_line),
+                label: const Text("刷新"),
               ),
-              onPressed: controller.refreshRoom,
-              icon: const Icon(Remix.refresh_line),
-              label: const Text("刷新"),
             ),
-          ),
-          Expanded(
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                textStyle: const TextStyle(fontSize: 14),
+            Expanded(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  textStyle: const TextStyle(fontSize: 14),
+                ),
+                onPressed: controller.share,
+                icon: const Icon(Remix.share_line),
+                label: const Text("分享"),
               ),
-              onPressed: controller.share,
-              icon: const Icon(Remix.share_line),
-              label: const Text("分享"),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
     );
   }
 
   Widget buildMessageArea() {
     return Expanded(
       child: DefaultTabController(
-        length: controller.site.id == Constant.kBiliBili ? 4 : 3,
+        length: 3,
         child: Column(
           children: [
             TabBar(
@@ -446,18 +400,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 const Tab(
                   text: "聊天",
                 ),
-                if (controller.site.id == Constant.kBiliBili)
-                  Tab(
-                    child: Obx(
-                      () => Text(
-                        controller.superChats.isNotEmpty
-                            ? "SC(${controller.superChats.length})"
-                            : "SC",
-                      ),
+                Tab(
+                  child: Obx(
+                    () => Text(
+                      controller.superChats.isNotEmpty
+                          ? "SC(${controller.superChats.length})"
+                          : "SC",
                     ),
                   ),
-                const Tab(
-                  text: "关注",
                 ),
                 const Tab(
                   text: "设置",
@@ -505,9 +455,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       ],
                     ),
                   ),
-                  if (controller.site.id == Constant.kBiliBili)
-                    buildSuperChats(),
-                  buildFollowList(),
+                  buildSuperChats(),
                   buildSettings(),
                 ],
               ),
@@ -727,47 +675,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     );
   }
 
-  Widget buildFollowList() {
-    return Obx(
-      () => Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: FollowService.instance.loadData,
-            child: ListView.builder(
-              itemCount: FollowService.instance.liveList.length,
-              itemBuilder: (_, i) {
-                var item = FollowService.instance.liveList[i];
-                return Obx(
-                  () => FollowUserItem(
-                    item: item,
-                    playing: controller.rxSite.value.id == item.siteId &&
-                        controller.rxRoomId.value == item.roomId,
-                    onTap: () {
-                      controller.resetRoom(
-                        Sites.allSites[item.siteId]!,
-                        item.roomId,
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-          if (Platform.isLinux || Platform.isWindows || Platform.isMacOS)
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Obx(
-                () => DesktopRefreshButton(
-                  refreshing: FollowService.instance.updating.value,
-                  onPressed: FollowService.instance.loadData,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+
 
   List<Widget> buildAppbarActions(BuildContext context) {
     return [

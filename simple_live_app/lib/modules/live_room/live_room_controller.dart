@@ -10,20 +10,14 @@ import 'package:media_kit/media_kit.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:simple_live_app/app/app_style.dart';
-import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
-import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
-import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/history.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controller.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/db_service.dart';
-import 'package:simple_live_app/services/follow_service.dart';
-import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
-import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -39,10 +33,6 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     rxSite = pSite.obs;
     rxRoomId = pRoomId.obs;
     liveDanmaku = site.liveSite.getDanmaku();
-    // 抖音应该默认是竖屏的
-    if (site.id == "douyin") {
-      isVertical.value = true;
-    }
   }
 
   late Rx<Site> rxSite;
@@ -110,9 +100,6 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   @override
   void onInit() {
     WidgetsBinding.instance.addObserver(this);
-    if (FollowService.instance.followList.isEmpty) {
-      FollowService.instance.loadData();
-    }
     initAutoExit();
     showDanmakuState.value = AppSettingsController.instance.danmuEnable.value;
     followed.value = DBService.instance.getFollowExist("${site.id}_$roomId");
@@ -286,33 +273,6 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
       update();
       addSysMsg("正在读取直播间信息");
       detail.value = await site.liveSite.getRoomDetail(roomId: roomId);
-
-      if (site.id == Constant.kDouyin) {
-        // 1.6.0之前收藏的WebRid
-        // 1.6.0收藏的RoomID
-        // 1.6.0之后改回WebRid
-        if (detail.value!.roomId != roomId) {
-          var oldId = roomId;
-          rxRoomId.value = detail.value!.roomId;
-          if (followed.value) {
-            // 更新关注列表
-            DBService.instance.deleteFollow("${site.id}_$oldId");
-            DBService.instance.addFollow(
-              FollowUser(
-                id: "${site.id}_$roomId",
-                roomId: roomId,
-                siteId: site.id,
-                userName: detail.value!.userName,
-                face: detail.value!.userAvatar,
-                addTime: DateTime.now(),
-              ),
-            );
-          } else {
-            followed.value =
-                DBService.instance.getFollowExist("${site.id}_$roomId");
-          }
-        }
-      }
 
       getSuperChatMessage();
 
@@ -535,40 +495,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     DBService.instance.addOrUpdateHistory(history);
   }
 
-  /// 关注用户
-  void followUser() {
-    if (detail.value == null) {
-      return;
-    }
-    var id = "${site.id}_$roomId";
-    DBService.instance.addFollow(
-      FollowUser(
-        id: id,
-        roomId: roomId,
-        siteId: site.id,
-        userName: detail.value?.userName ?? "",
-        face: detail.value?.userAvatar ?? "",
-        addTime: DateTime.now(),
-      ),
-    );
-    followed.value = true;
-    EventBus.instance.emit(Constant.kUpdateFollow, id);
-  }
 
-  /// 取消关注用户
-  void removeFollowUser() async {
-    if (detail.value == null) {
-      return;
-    }
-    if (!await Utils.showAlertDialog("确定要取消关注该用户吗？", title: "取消关注")) {
-      return;
-    }
-
-    var id = "${site.id}_$roomId";
-    DBService.instance.deleteFollow(id);
-    followed.value = false;
-    EventBus.instance.emit(Constant.kUpdateFollow, id);
-  }
 
   void share() {
     if (detail.value == null) {
@@ -826,51 +753,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     );
   }
 
-  void showFollowUserSheet() {
-    Utils.showBottomSheet(
-      title: "关注列表",
-      child: Obx(
-        () => Stack(
-          children: [
-            RefreshIndicator(
-              onRefresh: FollowService.instance.loadData,
-              child: ListView.builder(
-                itemCount: FollowService.instance.liveList.length,
-                itemBuilder: (_, i) {
-                  var item = FollowService.instance.liveList[i];
-                  return Obx(
-                    () => FollowUserItem(
-                      item: item,
-                      playing: rxSite.value.id == item.siteId &&
-                          rxRoomId.value == item.roomId,
-                      onTap: () {
-                        Get.back();
-                        resetRoom(
-                          Sites.allSites[item.siteId]!,
-                          item.roomId,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (Platform.isLinux || Platform.isWindows || Platform.isMacOS)
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: Obx(
-                  () => DesktopRefreshButton(
-                    refreshing: FollowService.instance.updating.value,
-                    onPressed: FollowService.instance.loadData,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   void showAutoExitSheet() {
     if (AppSettingsController.instance.autoExitEnable.value &&
@@ -941,31 +824,18 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   }
 
   void openNaviteAPP() async {
-    var naviteUrl = "";
-    var webUrl = "";
-    if (site.id == Constant.kBiliBili) {
-      naviteUrl = "bilibili://live/${detail.value?.roomId}";
-      webUrl = "https://live.bilibili.com/${detail.value?.roomId}";
-    } else if (site.id == Constant.kDouyin) {
-      var args = detail.value?.danmakuData as DouyinDanmakuArgs;
-      naviteUrl = "snssdk1128://webcast_room?room_id=${args.roomId}";
-      webUrl = "https://live.douyin.com/${args.webRid}";
-    } else if (site.id == Constant.kHuya) {
-      var args = detail.value?.danmakuData as HuyaDanmakuArgs;
-      naviteUrl =
-          "yykiwi://homepage/index.html?banneraction=https%3A%2F%2Fdiy-front.cdn.huya.com%2Fzt%2Ffrontpage%2Fcc%2Fupdate.html%3Fhyaction%3Dlive%26channelid%3D${args.subSid}%26subid%3D${args.subSid}%26liveuid%3D${args.subSid}%26screentype%3D1%26sourcetype%3D0%26fromapp%3Dhuya_wap%252Fclick%252Fopen_app_guide%26&fromapp=huya_wap/click/open_app_guide";
-      webUrl = "https://www.huya.com/${detail.value?.roomId}";
-    } else if (site.id == Constant.kDouyu) {
-      naviteUrl =
-          "douyulink://?type=90001&schemeUrl=douyuapp%3A%2F%2Froom%3FliveType%3D0%26rid%3D${detail.value?.roomId}";
-      webUrl = "https://www.douyu.com/${detail.value?.roomId}";
-    }
     try {
-      await launchUrlString(naviteUrl, mode: LaunchMode.externalApplication);
+      await launchUrlString(
+        "bilibili://live/${detail.value?.roomId}",
+        mode: LaunchMode.externalApplication,
+      );
     } catch (e) {
       Log.logPrint(e);
       SmartDialog.showToast("无法打开APP，将使用浏览器打开");
-      await launchUrlString(webUrl, mode: LaunchMode.externalApplication);
+      await launchUrlString(
+        "https://live.bilibili.com/${detail.value?.roomId}",
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 

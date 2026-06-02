@@ -1,54 +1,57 @@
 > ### ⚠ 本项目不提供Release安装包，请自行编译后运行测试。
 
+<p align="center">
+    <img width="128" src="/assets/logo.png" alt="BiliLive logo">
+</p>
+<h2 align="center">BiliLive</h2>
 
 <p align="center">
-    <img width="128" src="/assets/logo.png" alt="Simple Live logo">
-</p>
-<h2 align="center">Simple Live</h2>
-
-<p align="center">
-简简单单的看直播
+简简单单看B站直播
 </p>
 
-![浅色模式](/assets/screenshot_light.jpg)
+## 关于本项目
 
-![深色模式](/assets/screenshot_dark.jpg)
+BiliLive 是基于 [Simple Live](https://github.com/xiaoyaocz/dart_simple_live) 精简优化而来，专注于观看哔哩哔哩直播。
 
-## 支持直播平台：
+**原项目**: [xiaoyaocz/dart_simple_live](https://github.com/xiaoyaocz/dart_simple_live) (GPL-3.0)
+**本仓库**: [BoooSAMA/dart_simple_live_bilibili](https://github.com/BoooSAMA/dart_simple_live_bilibili)
 
-- 虎牙直播
+### 与原项目的主要区别
 
-- 斗鱼直播
+- 仅保留哔哩哔哩直播功能
+- 移除了虎牙、斗鱼、抖音等直播平台支持
+- 移除了账号登录、关注、数据同步等非核心功能
+- 简化了代码结构和依赖
+- 专注于 Android 平台
 
-- 哔哩哔哩直播
-
-- 抖音直播
-
-## APP支持平台
+## 支持平台
 
 - [x] Android
-- [x] iOS
-- [x] Windows `BETA`
-- [x] MacOS `BETA`
-- [x] Linux `BETA`
-- [x] Android TV `BETA`
+
+## 功能
+
+- 📺 哔哩哔哩直播分区浏览和推荐
+- 🔍 搜索直播间和主播
+- 💬 弹幕显示（含关键词屏蔽）
+- 🎬 多清晰度播放
+- 📝 本地观看记录
+- ⏰ 定时关闭
+- 🎨 外观设置
 
 ## 项目结构
 
-- `simple_live_core` 项目核心库，实现获取各个网站的信息及弹幕。
-- `simple_live_console` 基于simple_live_core的控制台程序。
-- `simple_live_app` 基于核心库实现的Flutter APP客户端。
-- `simple_live_tv_app` 基于核心库实现的Flutter Android TV客户端。
+- `simple_live_core` 项目核心库（仅保留B站相关）
+- `simple_live_app` Flutter APP客户端
 
 ## 环境
 
-Flutter : `3.38`
+Flutter: `3.38`
 
 ## 参考及引用
 
-[AllLive](https://github.com/xiaoyaocz/AllLive) `本项目的C#版，有兴趣可以看看`
+原项目 [Simple Live](https://github.com/xiaoyaocz/dart_simple_live) 参考的资料：
 
-[dart_tars_protocol](https://github.com/xiaoyaocz/dart_tars_protocol.git)
+[AllLive](https://github.com/xiaoyaocz/AllLive)
 
 [wbt5/real-url](https://github.com/wbt5/real-url)
 
@@ -56,13 +59,9 @@ Flutter : `3.38`
 
 [IsoaSFlus/danmaku](https://github.com/IsoaSFlus/danmaku)
 
-[BacooTang/huya-danmu](https://github.com/BacooTang/huya-danmu)
+## 许可证
 
-[TarsCloud/Tars](https://github.com/TarsCloud/Tars)
-
-[YunzhiYike/douyin-live](https://github.com/YunzhiYike/douyin-live)
-
-[5ime/Tiktok_Signature](https://github.com/5ime/Tiktok_Signature)
+GPL-3.0 (与原项目保持一致)
 
 ## 声明
 
@@ -71,13 +70,3 @@ Flutter : `3.38`
 本项目仅用于学习交流编程技术，严禁将本项目用于商业目的。如有任何商业行为，均与本项目无关。
 
 如果本项目存在侵犯您的合法权益的情况，请及时与开发者联系，开发者将会及时删除有关内容。
-
-## Star History
-
-<a href="https://www.star-history.com/#xiaoyaocz/dart_simple_live&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xiaoyaocz/dart_simple_live&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xiaoyaocz/dart_simple_live&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xiaoyaocz/dart_simple_live&type=Date" />
- </picture>
-</a>
