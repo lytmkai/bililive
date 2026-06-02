@@ -27,6 +27,9 @@ class RoutePath {
   /// 其他设置
   static const kSettingsOther = "/settings/other";
 
+  /// 关注用户
+  static const kFollowUser = "/user/follow";
+
   /// 历史记录
   static const kHistory = "/user/history";
 

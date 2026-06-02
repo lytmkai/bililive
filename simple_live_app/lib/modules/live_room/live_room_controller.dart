@@ -11,13 +11,18 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
+import 'package:simple_live_app/app/constant.dart';
+import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
+import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/history.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controller.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/db_service.dart';
+import 'package:simple_live_app/services/follow_service.dart';
+import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -497,6 +502,34 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
 
 
 
+  /// 关注用户
+  void followUser() {
+    if (detail.value == null) return;
+    var id = "${site.id}_$roomId";
+    DBService.instance.addFollow(
+      FollowUser(
+        id: id,
+        roomId: roomId,
+        siteId: site.id,
+        userName: detail.value?.userName ?? "",
+        face: detail.value?.userAvatar ?? "",
+        addTime: DateTime.now(),
+      ),
+    );
+    followed.value = true;
+    EventBus.instance.emit(Constant.kUpdateFollow, id);
+  }
+
+  /// 取消关注用户
+  void removeFollowUser() async {
+    if (detail.value == null) return;
+    if (!await Utils.showAlertDialog("确定要取消关注该用户吗？", title: "取消关注")) return;
+    var id = "${site.id}_$roomId";
+    DBService.instance.deleteFollow(id);
+    followed.value = false;
+    EventBus.instance.emit(Constant.kUpdateFollow, id);
+  }
+
   void share() {
     if (detail.value == null) {
       return;
@@ -754,6 +787,41 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   }
 
 
+
+  void showFollowUserSheet() {
+    Utils.showBottomSheet(
+      title: "关注列表",
+      child: Obx(
+        () => Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: FollowService.instance.loadData,
+              child: ListView.builder(
+                itemCount: FollowService.instance.liveList.length,
+                itemBuilder: (_, i) {
+                  var item = FollowService.instance.liveList[i];
+                  return Obx(
+                    () => FollowUserItem(
+                      item: item,
+                      playing: rxSite.value.id == item.siteId &&
+                          rxRoomId.value == item.roomId,
+                      onTap: () {
+                        Get.back();
+                        resetRoom(
+                          Sites.allSites[item.siteId]!,
+                          item.roomId,
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void showAutoExitSheet() {
     if (AppSettingsController.instance.autoExitEnable.value &&

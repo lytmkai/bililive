@@ -173,6 +173,25 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           ),
           child: Row(
             children: [
+              Obx(
+                () => controller.followed.value
+                    ? TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        onPressed: controller.removeFollowUser,
+                        icon: const Icon(Remix.heart_fill),
+                        label: const Text("取消关注"),
+                      )
+                    : TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        onPressed: controller.followUser,
+                        icon: const Icon(Remix.heart_line),
+                        label: const Text("关注"),
+                      ),
+              ),
               TextButton.icon(
                 style: TextButton.styleFrom(
                   textStyle: const TextStyle(fontSize: 14),
@@ -361,6 +380,27 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       padding: EdgeInsets.only(bottom: AppStyle.bottomBarHeight),
         child: Row(
           children: [
+            Expanded(
+              child: Obx(
+                () => controller.followed.value
+                    ? TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        onPressed: controller.removeFollowUser,
+                        icon: const Icon(Remix.heart_fill),
+                        label: const Text("取消关注"),
+                      )
+                    : TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        onPressed: controller.followUser,
+                        icon: const Icon(Remix.heart_line),
+                        label: const Text("关注"),
+                      ),
+              ),
+            ),
             Expanded(
               child: TextButton.icon(
                 style: TextButton.styleFrom(

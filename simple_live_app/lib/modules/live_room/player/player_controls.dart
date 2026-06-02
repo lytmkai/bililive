@@ -169,7 +169,16 @@ Widget buildFullControls(
                       size: 24,
                     ),
                   ),
-
+                  IconButton(
+                    onPressed: () {
+                      controller.showFollowUserSheet();
+                    },
+                    icon: const Icon(
+                      Remix.play_list_2_line,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                   Visibility(
                     visible: Platform.isAndroid,
                     child: IconButton(

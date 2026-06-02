@@ -6,6 +6,8 @@ import 'package:simple_live_app/modules/category/detail/category_detail_page.dar
 import 'package:simple_live_app/modules/indexed/indexed_controller.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_app/modules/live_room/live_room_page.dart';
+import 'package:simple_live_app/modules/follow_user/follow_user_controller.dart';
+import 'package:simple_live_app/modules/follow_user/follow_user_page.dart';
 import 'package:simple_live_app/modules/search/search_controller.dart';
 import 'package:simple_live_app/modules/search/search_page.dart';
 import 'package:simple_live_app/modules/settings/appstyle_setting_page.dart';
@@ -33,6 +35,14 @@ class AppPages {
       page: () => const IndexedPage(),
       bindings: [
         BindingsBuilder.put(() => IndexedController()),
+      ],
+    ),
+    // 关注用户
+    GetPage(
+      name: RoutePath.kFollowUser,
+      page: () => const FollowUserPage(),
+      bindings: [
+        BindingsBuilder.put(() => FollowUserController()),
       ],
     ),
     // 观看记录
