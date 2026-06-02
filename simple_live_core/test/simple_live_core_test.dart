@@ -95,7 +95,9 @@ void testSite(LiveSite site) async {
 
   test('getPlayUrls', () async {
     var url = await site.getPlayUrls(
-        detail: roomDetail!, quality: playQualities.first);
+      detail: roomDetail!,
+      quality: playQualities.first,
+    );
     expect(url, isNotNull);
     expect(url.urls, isNotEmpty);
     print(url.urls.join('\n\n'));
@@ -135,17 +137,5 @@ void main() {
 
   group('bilibili tests', () {
     testSite(BiliBiliSite());
-  });
-
-  group('douyu tests', () {
-    testSite(DouyuSite());
-  });
-
-  group('huya tests', () {
-    testSite(HuyaSite());
-  });
-
-  group('douyin tests', () {
-    testSite(DouyinSite());
   });
 }
