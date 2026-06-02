@@ -25,6 +25,9 @@ class FollowService extends GetxService {
   /// 是否正在更新
   var updating = false.obs;
 
+  /// 防重入
+  bool _loading = false;
+
   @override
   void onInit() {
     subscription = EventBus.instance.listen(Constant.kUpdateFollow, (p0) {
@@ -35,39 +38,49 @@ class FollowService extends GetxService {
 
   /// 加载关注列表并检查直播状态
   Future<void> loadData() async {
-    followList.value = DBService.instance.followBox.values.toList();
-    if (followList.isEmpty) {
-      liveList.clear();
-      notLiveList.clear();
-      return;
-    }
+    if (_loading) return;
+    _loading = true;
+    try {
+      // 先拷贝出数据，避免在遍历时被其他代码修改
+      final users = DBService.instance.followBox.values.toList();
+      followList.value = users;
 
-    updating.value = true;
-    List<FollowUser> live = [];
-    List<FollowUser> notLive = [];
+      if (users.isEmpty) {
+        liveList.value = [];
+        notLiveList.value = [];
+        return;
+      }
 
-    for (var user in followList.toList()) {
-      try {
-        var siteInfo = Sites.allSites[user.siteId];
-        if (siteInfo == null) continue;
-        var isLive =
-            await siteInfo.liveSite.getLiveStatus(roomId: user.roomId);
-        user.liveStatus.value = isLive ? 2 : 1;
-        if (isLive) {
-          live.add(user);
-        } else {
+      updating.value = true;
+      List<FollowUser> live = [];
+      List<FollowUser> notLive = [];
+
+      for (var user in users) {
+        try {
+          var siteInfo = Sites.allSites[user.siteId];
+          if (siteInfo == null) continue;
+          var isLive =
+              await siteInfo.liveSite.getLiveStatus(roomId: user.roomId);
+          user.liveStatus.value = isLive ? 2 : 1;
+          if (isLive) {
+            live.add(user);
+          } else {
+            notLive.add(user);
+          }
+        } catch (e) {
+          Log.logPrint(e);
+          user.liveStatus.value = 0;
           notLive.add(user);
         }
-      } catch (e) {
-        Log.logPrint(e);
-        user.liveStatus.value = 0; // 读取失败
-        notLive.add(user);
       }
-    }
 
-    liveList.value = live;
-    notLiveList.value = notLive;
-    updating.value = false;
+      // 原子性设置三个列表的值
+      liveList.value = live;
+      notLiveList.value = notLive;
+      updating.value = false;
+    } finally {
+      _loading = false;
+    }
   }
 
   /// 添加关注
