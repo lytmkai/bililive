@@ -14,15 +14,9 @@ import 'package:simple_live_app/modules/home/home_page.dart';
 import 'package:simple_live_app/modules/mine/mine_page.dart';
 
 class IndexedController extends GetxController {
-  RxList<HomePageItem> items = RxList<HomePageItem>([]);
-
-  var index = 0.obs;
-  RxList<Widget> pages = RxList<Widget>([
-    const SizedBox(),
-    const SizedBox(),
-    const SizedBox(),
-    const SizedBox(),
-  ]);
+  late RxList<HomePageItem> items;
+  late RxInt index;
+  late RxList<Widget> pages;
 
   void setIndex(int i) {
     if (pages[i] is SizedBox) {
@@ -56,12 +50,20 @@ class IndexedController extends GetxController {
 
   @override
   void onInit() {
+    super.onInit();
+    index = 0.obs;
+    items = RxList<HomePageItem>([]);
+    pages = RxList<Widget>([
+      const SizedBox(),
+      const SizedBox(),
+      const SizedBox(),
+      const SizedBox(),
+    ]);
     Future.delayed(Duration.zero, showFirstRun);
     items.value = AppSettingsController.instance.homeSort
         .map((key) => Constant.allHomePages[key]!)
         .toList();
     setIndex(0);
-    super.onInit();
   }
 
   void showFirstRun() async {

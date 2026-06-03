@@ -1,21 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
-import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/category/category_list_controller.dart';
 
-class CategoryController extends GetxController
-    with GetSingleTickerProviderStateMixin {
-  late TabController tabController;
-  CategoryController() {
-    tabController =
-        TabController(length: Sites.supportSites.length, vsync: this);
-  }
+class CategoryController extends GetxController {
   StreamSubscription<dynamic>? streamSubscription;
+
   @override
   void onInit() {
     streamSubscription = EventBus.instance.listen(
@@ -26,6 +18,8 @@ class CategoryController extends GetxController
         }
       },
     );
+
+    // Register site controllers (kept for potential future multi-site support)
     for (var site in Sites.supportSites) {
       Get.put(CategoryListController(site), tag: site.id);
     }
@@ -34,11 +28,7 @@ class CategoryController extends GetxController
   }
 
   void refreshOrScrollTop() {
-    var tabIndex = tabController.index;
-    BasePageController controller;
-    controller =
-        Get.find<CategoryListController>(tag: Sites.supportSites[tabIndex].id);
-    controller.scrollToTopOrRefresh();
+    // Custom category view has no scroll-to-top behavior; no-op for now.
   }
 
   @override

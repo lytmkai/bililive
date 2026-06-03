@@ -168,6 +168,9 @@ class LocalStorageService extends GetxService {
   /// WebDAV_最后一次备份时间
   static const String kWebDAVLastRecoverTime = "kWebDAVLastRecoverTime";
 
+  /// 自定义分区收藏列表
+  static const String kCustomCategories = "CustomCategories";
+
   late Box settingsBox;
   late Box<String> shieldBox;
 

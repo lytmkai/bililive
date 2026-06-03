@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
@@ -19,6 +20,7 @@ class PageGridView extends StatelessWidget {
   final double crossAxisSpacing, mainAxisSpacing;
   final int crossAxisCount;
   final bool showPCRefreshButton;
+  final bool autoLoadMore;
   const PageGridView({
     required this.itemBuilder,
     required this.pageController,
@@ -29,6 +31,7 @@ class PageGridView extends StatelessWidget {
     this.crossAxisSpacing = 0.0,
     this.mainAxisSpacing = 0.0,
     this.showPCRefreshButton = true,
+    this.autoLoadMore = true,
     required this.crossAxisCount,
     Key? key,
   }) : super(key: key);
@@ -42,13 +45,15 @@ class PageGridView extends StatelessWidget {
             header: MaterialHeader(
               completeDuration: const Duration(milliseconds: 400),
             ),
-            footer: MaterialFooter(
-              completeDuration: const Duration(milliseconds: 400),
-            ),
+            footer: autoLoadMore
+                ? MaterialFooter(
+                    completeDuration: const Duration(milliseconds: 400),
+                  )
+                : null,
             scrollController: pageController.scrollController,
             controller: pageController.easyRefreshController,
             firstRefresh: firstRefresh,
-            onLoad: pageController.loadData,
+            onLoad: autoLoadMore ? pageController.loadData : null,
             onRefresh: pageController.refreshData,
             child: MasonryGridView.count(
               padding: padding,
@@ -65,16 +70,47 @@ class PageGridView extends StatelessWidget {
             right: 0,
             child: // 加载更多按钮
                 Visibility(
-              visible: (Platform.isWindows ||
+                visible: (!autoLoadMore ||
+                      Platform.isWindows ||
                       Platform.isLinux ||
                       Platform.isMacOS) &&
                   pageController.canLoadMore.value &&
                   !pageController.pageLoadding.value &&
                   !pageController.pageEmpty.value,
               child: Center(
-                child: TextButton(
-                  onPressed: pageController.loadData,
-                  child: const Text("加载更多"),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: InkWell(
+                        onTap: pageController.loadData,
+                        borderRadius: BorderRadius.circular(24),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: const Text(
+                            "加载更多直播",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

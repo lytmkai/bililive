@@ -13,7 +13,13 @@ class AppSearchController extends GetxController
 
   var searchMode = 0.obs;
 
-  AppSearchController() {
+  StreamSubscription<dynamic>? streamSubscription;
+
+  TextEditingController searchController = TextEditingController();
+
+  @override
+  void onInit() {
+    super.onInit();
     tabController =
         TabController(length: Sites.supportSites.length, vsync: this);
     tabController.animation?.addListener(() {
@@ -36,14 +42,6 @@ class AppSearchController extends GetxController
         controller.refreshData();
       }
     });
-  }
-
-  StreamSubscription<dynamic>? streamSubscription;
-
-  TextEditingController searchController = TextEditingController();
-
-  @override
-  void onInit() {
     for (var site in Sites.supportSites) {
       // if (site.id == Constant.kDouyin) {
       //   Get.put(DouyinSearchController(site));
@@ -54,8 +52,6 @@ class AppSearchController extends GetxController
       );
       //}
     }
-
-    super.onInit();
   }
 
   void doSearch() {
@@ -84,6 +80,7 @@ class AppSearchController extends GetxController
 
   @override
   void onClose() {
+    tabController.dispose();
     streamSubscription?.cancel();
     super.onClose();
   }

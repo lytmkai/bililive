@@ -25,6 +25,7 @@ class HomeListView extends StatelessWidget {
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
         crossAxisCount: c,
+        autoLoadMore: false,
         itemBuilder: (_, i) {
           var item = controller.list[i];
           return LiveRoomCard(controller.site, item);

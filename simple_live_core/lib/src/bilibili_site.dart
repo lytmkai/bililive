@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:simple_live_core/src/common/convert_helper.dart';
+import 'package:simple_live_core/src/common/core_error.dart';
 import 'package:simple_live_core/src/common/http_client.dart';
 import 'package:simple_live_core/src/danmaku/bilibili_danmaku.dart';
 import 'package:simple_live_core/src/interface/live_danmaku.dart';
@@ -72,9 +73,9 @@ class BiliBiliSite implements LiveSite {
       List<LiveSubCategory> subs = [];
       for (var subItem in item["list"]) {
         var subCategory = LiveSubCategory(
-          id: subItem["id"].toString(),
+          id: (subItem["id"] ?? "").toString(),
           name: asT<String?>(subItem["name"]) ?? "",
-          parentId: asT<String?>(subItem["parent_id"]) ?? "",
+          parentId: (subItem["parent_id"] ?? "").toString(),
           pic: "${asT<String?>(subItem["pic"]) ?? ""}@100w.png",
         );
         subs.add(subCategory);
@@ -96,7 +97,7 @@ class BiliBiliSite implements LiveSite {
         "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList";
 
     var url =
-        "$baseUrl?platform=web&parent_area_id=${category.parentId}&area_id=${category.id}&sort_type=&page=$page&w_webid=${await getAccessId()}";
+        "$baseUrl?platform=web&parent_area_id=${category.parentId}&area_id=${category.id}&sort_type=&page=$page&web_location=444.253&vajra_business_key=&w_webid=${await getAccessId()}";
 
     var queryParams = await getWbiSign(url);
 
@@ -106,17 +107,27 @@ class BiliBiliSite implements LiveSite {
       header: await getHeader(),
     );
 
-    var hasMore = result["data"]["has_more"] == 1;
-    var items = <LiveRoomItem>[];
-    for (var item in result["data"]["list"]) {
-      var roomItem = LiveRoomItem(
-        roomId: item["roomid"].toString(),
-        title: item["title"].toString(),
-        cover: "${item["cover"]}@400w.jpg",
-        userName: item["uname"].toString(),
-        online: int.tryParse(item["online"].toString()) ?? 0,
+    var data = result["data"];
+    if (data == null) {
+      throw CoreError(
+        "获取分区房间列表失败: ${result["message"] ?? "未知错误"}",
+        statusCode: 0,
       );
-      items.add(roomItem);
+    }
+    var hasMore = data["has_more"] == 1;
+    var items = <LiveRoomItem>[];
+    var list = data["list"] as List?;
+    if (list != null) {
+      for (var item in list) {
+        var roomItem = LiveRoomItem(
+          roomId: item["roomid"].toString(),
+          title: item["title"].toString(),
+          cover: "${item["cover"]}@400w.jpg",
+          userName: item["uname"].toString(),
+          online: int.tryParse(item["online"].toString()) ?? 0,
+        );
+        items.add(roomItem);
+      }
     }
     return LiveCategoryResult(hasMore: hasMore, items: items);
   }
@@ -465,6 +476,8 @@ class BiliBiliSite implements LiveSite {
 
   static String kImgKey = '';
   static String kSubKey = '';
+  static int _lastKeyRefreshMs = 0;
+  static const int _kKeyTtlMs = 6 * 60 * 60 * 1000; // 6小时过期
   static const List<int> mixinKeyEncTab = [
     46,
     47,
@@ -532,7 +545,9 @@ class BiliBiliSite implements LiveSite {
     52
   ];
   Future<(String, String)> getWbiKeys() async {
-    if (kImgKey.isNotEmpty && kSubKey.isNotEmpty) {
+    var now = DateTime.now().millisecondsSinceEpoch;
+    if (kImgKey.isNotEmpty && kSubKey.isNotEmpty &&
+        (now - _lastKeyRefreshMs) < _kKeyTtlMs) {
       return (kImgKey, kSubKey);
     }
     // 获取最新的 img_key 和 sub_key
@@ -541,13 +556,28 @@ class BiliBiliSite implements LiveSite {
       header: await getHeader(),
     );
 
-    var imgUrl = resp["data"]["wbi_img"]["img_url"].toString();
-    var subUrl = resp["data"]["wbi_img"]["sub_url"].toString();
+    var code = resp["code"];
+    var data = resp["data"];
+    if (code != 0 && code != -101 || data == null) {
+      // code -101 表示未登录但仍会返回 wbi_img，其他 code 表示异常
+      // 如果已有缓存的 key，继续使用；否则抛出错误
+      if (kImgKey.isNotEmpty && kSubKey.isNotEmpty) {
+        return (kImgKey, kSubKey);
+      }
+      throw CoreError(
+        "获取WBI密钥失败: ${resp["message"] ?? "未知错误"} (code=$code)",
+        statusCode: 0,
+      );
+    }
+
+    var imgUrl = data["wbi_img"]["img_url"].toString();
+    var subUrl = data["wbi_img"]["sub_url"].toString();
     var imgKey = imgUrl.substring(imgUrl.lastIndexOf('/') + 1).split('.').first;
     var subKey = subUrl.substring(subUrl.lastIndexOf('/') + 1).split('.').first;
 
     kImgKey = imgKey;
     kSubKey = subKey;
+    _lastKeyRefreshMs = now;
 
     return (imgKey, subKey);
   }
@@ -583,7 +613,8 @@ class BiliBiliSite implements LiveSite {
 
     var query = map.keys
         .map((key) => "$key=${Uri.encodeQueryComponent(map[key]!)}")
-        .join("&");
+        .join("&")
+        .replaceAll('+', '%20'); // B站 WBI 签名要求空格编码为 %20，而非 +
     var wbiSign = md5.convert(utf8.encode("$query$mixinKey")).toString();
     queryParams["w_rid"] = wbiSign;
     return queryParams;

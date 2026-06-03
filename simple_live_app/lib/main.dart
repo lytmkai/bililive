@@ -17,6 +17,7 @@ import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/follow_user_tag.dart';
 import 'package:simple_live_app/models/db/history.dart';
+import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/routes/app_pages.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/db_service.dart';
@@ -64,6 +65,9 @@ Future initServices() async {
   Get.put(AppSettingsController());
 
   Get.put(FollowService());
+
+  // 自定义分区控制器（需提前注册，避免 CategoryPage 构建时找不到）
+  Get.put(CustomCategoryViewController(), permanent: true);
 
   initCoreLog();
 }
