@@ -96,14 +96,15 @@ class BiliBiliSite implements LiveSite {
     const baseUrl =
         "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList";
 
-    var url =
-        "$baseUrl?platform=web&parent_area_id=${category.parentId}&area_id=${category.id}&sort_type=&page=$page&web_location=444.253&vajra_business_key=&w_webid=${await getAccessId()}";
-
-    var queryParams = await getWbiSign(url);
-
     var result = await HttpClient.instance.getJson(
       baseUrl,
-      queryParameters: queryParams,
+      queryParameters: {
+        "platform": "web",
+        "parent_area_id": category.parentId,
+        "area_id": category.id,
+        "sort_type": "online",
+        "page": page.toString(),
+      },
       header: await getHeader(),
     );
 
@@ -125,6 +126,8 @@ class BiliBiliSite implements LiveSite {
           cover: "${item["cover"]}@400w.jpg",
           userName: item["uname"].toString(),
           online: int.tryParse(item["online"].toString()) ?? 0,
+          areaName: asT<String?>(item["area_name"]),
+          parentAreaName: asT<String?>(item["parent_area_name"]),
         );
         items.add(roomItem);
       }
@@ -238,6 +241,8 @@ class BiliBiliSite implements LiveSite {
         cover: "${item["cover"]}@400w.jpg",
         userName: item["uname"].toString(),
         online: int.tryParse(item["online"].toString()) ?? 0,
+        areaName: asT<String?>(item["area_name"]),
+        parentAreaName: asT<String?>(item["parent_area_name"]),
       );
       items.add(roomItem);
     }
@@ -356,6 +361,8 @@ class BiliBiliSite implements LiveSite {
         cover: "https:${item["cover"]}@400w.jpg",
         userName: item["uname"].toString(),
         online: int.tryParse(item["online"].toString()) ?? 0,
+        areaName: asT<String?>(item["area_name"]),
+        parentAreaName: asT<String?>(item["parent_area_name"]),
       );
       items.add(roomItem);
     }

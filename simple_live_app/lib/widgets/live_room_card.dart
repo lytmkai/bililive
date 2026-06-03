@@ -78,6 +78,32 @@ class LiveRoomCard extends StatelessWidget {
               ),
             ],
           ),
+          if (item.areaName != null)
+            Padding(
+              padding: AppStyle.edgeInsetsH8.copyWith(top: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.12),
+                  borderRadius: AppStyle.radius4,
+                ),
+                child: Text(
+                  item.areaName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
           Padding(
             padding: AppStyle.edgeInsetsA8.copyWith(bottom: 4),
             child: Text(
