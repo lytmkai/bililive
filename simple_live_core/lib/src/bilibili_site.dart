@@ -222,16 +222,71 @@ class BiliBiliSite implements LiveSite {
 
   @override
   Future<LiveCategoryResult> getRecommendRooms({int page = 1}) async {
-    // 全站推荐使用 getListByArea 接口（WBI 签名）
+    // 使用 getMoreRecList（全站推荐流，全球可用，无需 WBI 签名）
+    // getListByArea 已对海外 IP 返回 -352，因此弃用。
     const baseUrl =
-        "https://api.live.bilibili.com/xlive/web-interface/v1/second/getListByArea";
-    var url = "$baseUrl?platform=web&sort=online&page_size=30&page=$page";
-
-    var queryParams = await getWbiSign(url);
-
+        "https://api.live.bilibili.com/xlive/web-interface/v1/webMain/getMoreRecList";
     var result = await HttpClient.instance.getJson(
       baseUrl,
-      queryParameters: queryParams,
+      queryParameters: {
+        "platform": "web",
+        "page": page.toString(),
+      },
+      header: await getHeader(),
+    );
+
+    var code = result["code"];
+    var message = result["message"];
+    var data = result["data"];
+    print('[BiliBili] getRecommendRooms p$page: code=$code msg=$message '
+        'dataNull=${data == null} dataType=${data?.runtimeType}');
+
+    if (data == null) {
+      return LiveCategoryResult(hasMore: false, items: []);
+    }
+    var list = data["recommend_room_list"] as List?;
+    if (list == null || list.isEmpty) {
+      print('[BiliBili] getRecommendRooms p$page: list is null or empty');
+      return LiveCategoryResult(hasMore: false, items: []);
+    }
+    // getMoreRecList 每页固定 12 间，有数据就假定还有更多
+    var hasMore = list.length >= 12;
+    var items = <LiveRoomItem>[];
+    for (var item in list) {
+      var roomItem = LiveRoomItem(
+        roomId: item["roomid"].toString(),
+        title: item["title"].toString(),
+        cover: "${item["cover"]}@400w.jpg",
+        userName: item["uname"].toString(),
+        online: int.tryParse(item["online"].toString()) ?? 0,
+        areaName: asT<String?>(item["area_v2_name"]),
+        parentAreaName: asT<String?>(item["area_v2_parent_name"]),
+      );
+      items.add(roomItem);
+    }
+    return LiveCategoryResult(hasMore: hasMore, items: items);
+  }
+
+  /// 直接获取指定分区的直播间列表（无需 WBI 签名，全球可用）。
+  ///
+  /// 使用旧版 room/v1/area/getRoomList API，替代已对海外 IP 屏蔽的
+  /// second/getList 和 second/getListByArea。
+  ///
+  /// [areaId] 为子分区 ID（如 "86"=英雄联盟），需传入具体的 area_id，
+  /// 不支持父分区 ID（传 0 或父 ID 将返回空列表）。
+  ///
+  /// [sort] 可选 "online"（按在线人数）或 "live_time"（按开播时间）。
+  /// 每页固定 30 间房。
+  Future<LiveCategoryResult> getAreaRooms(String areaId,
+      {int page = 1, String sort = "online"}) async {
+    var result = await HttpClient.instance.getJson(
+      "https://api.live.bilibili.com/room/v1/area/getRoomList",
+      queryParameters: {
+        "area_id": areaId,
+        "sort_type": sort,
+        "page_size": "30",
+        "page_no": page.toString(),
+      },
       header: await getHeader(),
     );
 
@@ -239,9 +294,9 @@ class BiliBiliSite implements LiveSite {
     if (data == null) {
       return LiveCategoryResult(hasMore: false, items: []);
     }
-    var hasMore = (data["list"] as List).isNotEmpty;
+    var list = data as List;
     var items = <LiveRoomItem>[];
-    for (var item in data["list"]) {
+    for (var item in list) {
       var roomItem = LiveRoomItem(
         roomId: item["roomid"].toString(),
         title: item["title"].toString(),
@@ -249,11 +304,11 @@ class BiliBiliSite implements LiveSite {
         userName: item["uname"].toString(),
         online: int.tryParse(item["online"].toString()) ?? 0,
         areaName: asT<String?>(item["area_name"]),
-        parentAreaName: asT<String?>(item["parent_area_name"]),
+        parentAreaName: asT<String?>(item["parent_name"]),
       );
       items.add(roomItem);
     }
-    return LiveCategoryResult(hasMore: hasMore, items: items);
+    return LiveCategoryResult(hasMore: list.length >= 30, items: items);
   }
 
   @override

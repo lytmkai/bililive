@@ -21,6 +21,7 @@ class PageGridView extends StatelessWidget {
   final int crossAxisCount;
   final bool showPCRefreshButton;
   final bool autoLoadMore;
+  final bool enablePullRefresh;
   const PageGridView({
     required this.itemBuilder,
     required this.pageController,
@@ -32,6 +33,7 @@ class PageGridView extends StatelessWidget {
     this.mainAxisSpacing = 0.0,
     this.showPCRefreshButton = true,
     this.autoLoadMore = true,
+    this.enablePullRefresh = true,
     required this.crossAxisCount,
     Key? key,
   }) : super(key: key);
@@ -54,7 +56,7 @@ class PageGridView extends StatelessWidget {
             controller: pageController.easyRefreshController,
             firstRefresh: firstRefresh,
             onLoad: autoLoadMore ? pageController.loadData : null,
-            onRefresh: pageController.refreshData,
+            onRefresh: enablePullRefresh ? pageController.refreshData : null,
             child: MasonryGridView.count(
               padding: padding,
               itemCount: pageController.list.length,

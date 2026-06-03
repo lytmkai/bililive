@@ -1,38 +1,44 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'follow_user_tag.dart';
+part of 'fav_category.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class FollowUserTagAdapter extends TypeAdapter<FollowUserTag> {
+class FavCategoryAdapter extends TypeAdapter<FavCategory> {
   @override
-  final int typeId = 3;
+  final int typeId = 5;
 
   @override
-  FollowUserTag read(BinaryReader reader) {
+  FavCategory read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return FollowUserTag(
-      id: fields[1] as String,
-      tag: fields[2] as String,
-      userId: (fields[3] as List).cast<String>(),
+    return FavCategory(
+      id: fields[0] as String,
+      parentAreaName: fields[1] as String,
+      areaName: fields[2] as String,
+      areaId: fields[3] as String,
+      parentAreaId: fields[4] as String,
     );
   }
 
   @override
-  void write(BinaryWriter writer, FollowUserTag obj) {
+  void write(BinaryWriter writer, FavCategory obj) {
     writer
-      ..writeByte(3)
-      ..writeByte(1)
+      ..writeByte(5)
+      ..writeByte(0)
       ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.parentAreaName)
       ..writeByte(2)
-      ..write(obj.tag)
+      ..write(obj.areaName)
       ..writeByte(3)
-      ..write(obj.userId);
+      ..write(obj.areaId)
+      ..writeByte(4)
+      ..write(obj.parentAreaId);
   }
 
   @override
@@ -41,7 +47,7 @@ class FollowUserTagAdapter extends TypeAdapter<FollowUserTag> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is FollowUserTagAdapter &&
+      other is FavCategoryAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

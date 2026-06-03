@@ -28,8 +28,9 @@ class HomeListController extends BasePageController<LiveRoomItem> {
     pageSize = 15;
   }
 
-  /// 过滤分区需要更大的拉取量（12 页 × 30 间 = 360 间/批 vs 推荐 4 页 = 120 间/批）
-  int get _batchSize => category != null ? 12 : 4;
+  /// getMoreRecList 每页只有 12 间房（旧 getListByArea 是 30 间/页）。
+  /// 过滤分区需要 ~300 间/批以保证匹配量，推荐流 ~100 间/批即可。
+  int get _batchSize => category != null ? 25 : 10;
 
   @override
   Future refreshData() async {
@@ -52,12 +53,29 @@ class HomeListController extends BasePageController<LiveRoomItem> {
   ///
   /// 统一使用推荐 API + 客户端增强过滤（放弃 getList，海外 IP 不可用）。
   /// 过滤分区拉 12 页/批（360 间），推荐 tab 拉 4 页（120 间）。
+  /// 最多重试 2 次空池补充（避免过滤率 0% 导致的无限循环）。
   Future _refillPool() async {
     if (_fetching) return;
     _fetching = true;
     final gen = _generation;
+
+    var retries = 0;
     try {
       await _refillFromRecommendations(gen);
+      // 如果池子还空，再试一次（可能是某批 API 页面正好没命中分区）
+      while (_roomPool.isEmpty && retries < 2 && _generation == gen) {
+        retries++;
+        debugPrint(
+            '[HomeList] pool empty after batch, retry #$retries from p$_recApiPage');
+        await _refillFromRecommendations(gen);
+      }
+      if (_roomPool.isEmpty) {
+        debugPrint(
+            '[HomeList] pool still empty after $retries retries, giving up');
+      } else {
+        debugPrint(
+            '[HomeList] pool filled: ${_roomPool.length} rooms (retries=$retries)');
+      }
     } finally {
       if (_generation == gen) {
         _fetching = false;
@@ -73,6 +91,10 @@ class HomeListController extends BasePageController<LiveRoomItem> {
   ///    — B站 API 返回的 areaName 和分类列表里的子分区名可能有细微差异
   ///    — 双向：item.areaName contains subName OR subName contains item.areaName
   Future _refillFromRecommendations(int gen) async {
+    var totalFetched = 0;
+    var totalMatched = 0;
+    var totalAdded = 0;
+
     for (var i = 0; i < _batchSize; i++) {
       if (_generation != gen) return;
       if (_recApiPage > _maxApiPage) _recApiPage = 1;
@@ -82,16 +104,21 @@ class HomeListController extends BasePageController<LiveRoomItem> {
             await site.liveSite.getRecommendRooms(page: _recApiPage);
         _recApiPage++;
         var items = result.items;
+        totalFetched += items.length;
 
         if (category != null) {
           items = _matchPartition(items, category!);
+          totalMatched += items.length;
         }
 
+        var added = 0;
         for (var item in items) {
           if (_seenRoomIds.add(item.roomId)) {
             _roomPool.add(item);
+            added++;
           }
         }
+        totalAdded += added;
 
         if (!result.hasMore) break;
       } catch (e) {
@@ -99,6 +126,11 @@ class HomeListController extends BasePageController<LiveRoomItem> {
             '[HomeList] getRecommendRooms failed: p$_recApiPage — $e');
         _recApiPage++;
       }
+    }
+
+    if (totalFetched > 0) {
+      debugPrint(
+          '[HomeList] batch done: fetched=$totalFetched matched=$totalMatched added=$totalAdded pool=${_roomPool.length}');
     }
   }
 
@@ -113,23 +145,55 @@ class HomeListController extends BasePageController<LiveRoomItem> {
       List<LiveRoomItem> rooms, LiveCategory cat) {
     // 预计算子分区名集合，避免每次循环遍历完整列表
     final subNames = cat.children.map((s) => s.name).toSet();
+    final parentMatch = <LiveRoomItem>[];
+    final subMatch = <LiveRoomItem>[];
 
-    return rooms.where((item) {
+    for (var item in rooms) {
       // 策略 1：父分区名精确匹配
-      if (item.parentAreaName == cat.name) return true;
+      if (item.parentAreaName == cat.name) {
+        parentMatch.add(item);
+        continue;
+      }
+
+      // 策略 1b：父分区名双向模糊匹配（B站 分类名可能有细微重命名）
+      if (item.parentAreaName != null &&
+          (item.parentAreaName!.contains(cat.name) ||
+              cat.name.contains(item.parentAreaName!))) {
+        parentMatch.add(item);
+        continue;
+      }
 
       // 策略 2：子分区名双向模糊匹配
       if (item.areaName != null) {
+        var matched = false;
         for (var subName in subNames) {
           if (item.areaName!.contains(subName) ||
               subName.contains(item.areaName!)) {
-            return true;
+            matched = true;
+            break;
           }
         }
+        if (matched) {
+          subMatch.add(item);
+        }
       }
+    }
 
-      return false;
-    }).toList();
+    if (parentMatch.isNotEmpty || subMatch.isNotEmpty) {
+      debugPrint(
+          '[HomeList] filter "${cat.name}": parent=${parentMatch.length} sub=${subMatch.length} / total=${rooms.length}');
+    } else if (rooms.isNotEmpty) {
+      // 全部未匹配 → 输出版本中房间的 parentAreaName 采样，方便调试
+      var samples = rooms
+          .take(3)
+          .map((r) => '${r.parentAreaName ?? "null"}/${r.areaName ?? "null"}')
+          .join(', ');
+      debugPrint(
+          '[HomeList] filter "${cat.name}" matched 0/${rooms.length}, samples: [$samples]');
+    }
+
+    // 父分区匹配排前面
+    return [...parentMatch, ...subMatch];
   }
 
   @override

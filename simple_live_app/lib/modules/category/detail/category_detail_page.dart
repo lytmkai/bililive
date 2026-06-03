@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/modules/category/detail/category_detail_controller.dart';
+import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/widgets/keep_alive_wrapper.dart';
 import 'package:simple_live_app/widgets/live_room_card.dart';
 import 'package:simple_live_app/widgets/page_grid_view.dart';
@@ -19,12 +20,34 @@ class CategoryDetailPage extends GetView<CategoryDetailController> {
     return Scaffold(
       appBar: AppBar(
         title: Text(controller.subCategory.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: '刷新',
+            onPressed: controller.manualRefresh,
+          ),
+          GetBuilder<CategoryDetailController>(
+            builder: (ctrl) {
+              final isFav =
+                  DBService.instance.isFavCategory(ctrl.subCategory.id);
+              return IconButton(
+                icon: Icon(
+                  isFav ? Icons.star : Icons.star_border,
+                  color: isFav ? Colors.amber : null,
+                ),
+                onPressed: () => ctrl.toggleFavorite(),
+              );
+            },
+          ),
+        ],
       ),
       body: KeepAliveWrapper(
         child: PageGridView(
           pageController: controller,
           padding: AppStyle.edgeInsetsA12,
-          firstRefresh: true,
+          firstRefresh: false,          // 初始加载由 controller.onInit 处理
+          autoLoadMore: false,          // 显示加载更多按钮
+          enablePullRefresh: false,      // 禁用下拉刷新
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           crossAxisCount: c,

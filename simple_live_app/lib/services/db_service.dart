@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/follow_user_tag.dart';
 import 'package:simple_live_app/models/db/history.dart';
+import 'package:simple_live_app/models/db/fav_category.dart';
 import 'package:uuid/uuid.dart';
 import 'package:collection/collection.dart';
 
@@ -11,12 +12,14 @@ class DBService extends GetxService {
   late Box<History> historyBox;
   late Box<FollowUser> followBox;
   late Box<FollowUserTag> tagBox;
+  late Box<FavCategory> favBox;
   final Uuid uuid = const Uuid();
 
   Future init() async {
     historyBox = await Hive.openBox("History");
     followBox = await Hive.openBox("FollowUser");
     tagBox = await Hive.openBox("FollowUserTag");
+    favBox = await Hive.openBox("FavCategory");
   }
 
   // follow_user_tag 相关逻辑
@@ -101,4 +104,16 @@ class DBService extends GetxService {
     his.sort((a, b) => b.updateTime.compareTo(a.updateTime));
     return his;
   }
+
+  // FavCategory
+  List<FavCategory> getFavCategories() => favBox.values.toList();
+
+  bool isFavCategory(String areaId) =>
+      favBox.values.any((e) => e.areaId == areaId);
+
+  Future addFavCategory(FavCategory fav) async =>
+      await favBox.put(fav.areaId, fav);
+
+  Future removeFavCategory(String areaId) async =>
+      await favBox.delete(areaId);
 }

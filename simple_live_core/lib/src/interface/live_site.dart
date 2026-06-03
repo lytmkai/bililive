@@ -51,6 +51,13 @@ class LiveSite {
         LiveCategoryResult(hasMore: false, items: <LiveRoomItem>[]));
   }
 
+  /// 读取指定子分区的直播间列表（无需 WBI 签名，直接按 area_id 拉取）
+  Future<LiveCategoryResult> getAreaRooms(String areaId,
+      {int page = 1, String sort = "online"}) {
+    return Future.value(
+        LiveCategoryResult(hasMore: false, items: <LiveRoomItem>[]));
+  }
+
   /// 读取房间详情
   Future<LiveRoomDetail> getRoomDetail({required String roomId}) {
     return Future.value(LiveRoomDetail(

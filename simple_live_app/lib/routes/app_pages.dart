@@ -69,6 +69,10 @@ class AppPages {
         () => CategoryDetailController(
           site: Get.arguments[0],
           subCategory: Get.arguments[1],
+          parentAreaName:
+              Get.arguments.length > 2 ? Get.arguments[2] : null,
+          siblingNames:
+              Get.arguments.length > 3 ? Get.arguments[3] : null,
         ),
       ),
     ),

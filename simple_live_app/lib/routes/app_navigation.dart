@@ -8,9 +8,14 @@ import 'package:simple_live_core/simple_live_core.dart';
 /// * 如不需要参数，可以使用Get.toNamed
 class AppNavigator {
   /// 跳转至分类详情
-  static void toCategoryDetail(
-      {required Site site, required LiveSubCategory category}) {
-    Get.toNamed(RoutePath.kCategoryDetail, arguments: [site, category]);
+  static void toCategoryDetail({
+    required Site site,
+    required LiveSubCategory category,
+    String? parentAreaName,
+    List<String>? siblingNames,
+  }) {
+    Get.toNamed(RoutePath.kCategoryDetail,
+        arguments: [site, category, parentAreaName, siblingNames]);
   }
 
   /// 跳转至直播间
