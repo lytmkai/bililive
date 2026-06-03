@@ -34,11 +34,6 @@ class FollowUserItem extends StatelessWidget {
       subtitle: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            site.logo,
-            width: 20,
-          ),
-          AppStyle.hGap4,
           Text(
             site.name,
             style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -61,20 +56,25 @@ class FollowUserItem extends StatelessWidget {
                 if (item.liveStatus.value == 2) {
                   return Padding(
                     padding: AppStyle.edgeInsetsL8,
-                    child: Text(
-                      "直播中",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.primary,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
                       ),
                     ),
                   );
-                } else if (item.liveStatus.value == 0) {
-                  return const Padding(
+                } else if (item.liveStatus.value == 1) {
+                  return Padding(
                     padding: AppStyle.edgeInsetsL8,
-                    child: Text(
-                      "读取中",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   );
                 }

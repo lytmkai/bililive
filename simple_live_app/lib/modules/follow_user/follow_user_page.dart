@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:simple_live_app/app/app_style.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/follow_user/follow_user_controller.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
 import 'package:simple_live_app/services/follow_service.dart';
-import 'package:simple_live_app/widgets/filter_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
-import 'package:simple_live_app/widgets/page_grid_view.dart';
+import 'package:simple_live_app/widgets/status/app_empty_widget.dart';
+import 'package:simple_live_app/widgets/status/app_error_widget.dart';
+import 'package:simple_live_app/widgets/status/app_loadding_widget.dart';
 
 class FollowUserPage extends GetView<FollowUserController> {
   const FollowUserPage({Key? key}) : super(key: key);
@@ -35,62 +36,44 @@ class FollowUserPage extends GetView<FollowUserController> {
                 ),
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: AppStyle.edgeInsetsL8,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Obx(
-                () => Row(
-                  children: [
-                    FilterButton(
-                      text: "全部",
-                      selected: controller.filterMode.value == 0,
-                      onTap: () => controller.setFilterMode(0),
-                    ),
-                    AppStyle.hGap12,
-                    FilterButton(
-                      text: "直播中",
-                      selected: controller.filterMode.value == 1,
-                      onTap: () => controller.setFilterMode(1),
-                    ),
-                    AppStyle.hGap12,
-                    FilterButton(
-                      text: "未开播",
-                      selected: controller.filterMode.value == 2,
-                      onTap: () => controller.setFilterMode(2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: PageGridView(
-              crossAxisSpacing: 12,
-              crossAxisCount: count,
-              pageController: controller,
-              firstRefresh: true,
-              showPCRefreshButton: false,
-              itemBuilder: (_, i) {
-                var item = controller.list[i];
-                var site = Sites.allSites[item.siteId]!;
-                return FollowUserItem(
-                  item: item,
-                  onRemove: () => controller.removeItem(item),
-                  onTap: () {
-                    AppNavigator.toLiveRoomDetail(
-                      site: site,
-                      roomId: item.roomId,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+      body: Obx(
+        () {
+          if (controller.pageLoadding.value) {
+            return const AppLoaddingWidget();
+          }
+          if (controller.pageError.value) {
+            return AppErrorWidget(
+              errorMsg: controller.errorMsg.value,
+              onRefresh: () => controller.refreshData(),
+            );
+          }
+          if (controller.pageEmpty.value) {
+            return AppEmptyWidget(
+              onRefresh: () => controller.refreshData(),
+            );
+          }
+          return MasonryGridView.count(
+            padding: const EdgeInsets.all(8),
+            itemCount: controller.list.length,
+            itemBuilder: (_, i) {
+              var item = controller.list[i];
+              var site = Sites.allSites[item.siteId]!;
+              return FollowUserItem(
+                item: item,
+                onRemove: () => controller.removeItem(item),
+                onTap: () {
+                  AppNavigator.toLiveRoomDetail(
+                    site: site,
+                    roomId: item.roomId,
+                  );
+                },
+              );
+            },
+            crossAxisCount: count,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          );
+        },
       ),
     );
   }

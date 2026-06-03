@@ -27,6 +27,9 @@ class CustomCategoryView extends StatelessWidget {
     return KeepAliveWrapper(
       child: Obx(
         () => Scaffold(
+          appBar: AppBar(
+            title: const Text('直播分区'),
+          ),
           body: controller.savedList.isEmpty
               ? _buildEmptyView(context)
               : _buildGridView(context),

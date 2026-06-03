@@ -46,7 +46,8 @@ class LiveSite {
   }
 
   /// 读取推荐的房间
-  Future<LiveCategoryResult> getRecommendRooms({int page = 1}) {
+  /// [parentAreaId] 可选：指定分区ID筛选，null 时为全站推荐
+  Future<LiveCategoryResult> getRecommendRooms({int page = 1, String? parentAreaId}) {
     return Future.value(
         LiveCategoryResult(hasMore: false, items: <LiveRoomItem>[]));
   }

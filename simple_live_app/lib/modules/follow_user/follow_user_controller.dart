@@ -15,11 +15,17 @@ class FollowUserController extends BasePageController<FollowUser> {
       EventBus.kBottomNavigationBarClicked,
       (index) {
         if (index == 1) {
-          scrollToTopOrRefresh();
+          refreshData();
         }
       },
     );
     super.onInit();
+  }
+
+  @override
+  void onReady() {
+    refreshData();
+    super.onReady();
   }
 
   @override

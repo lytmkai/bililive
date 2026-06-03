@@ -4,12 +4,14 @@ import 'package:simple_live_core/simple_live_core.dart';
 
 class HomeListController extends BasePageController<LiveRoomItem> {
   final Site site;
+  /// 分区ID，null 时为全站推荐
+  String? parentAreaId;
 
   /// API 返回的完整结果缓存（B站 API 固定每页30条）
   List<LiveRoomItem> _cachedItems = [];
   int _apiPage = 0;
 
-  HomeListController(this.site) {
+  HomeListController(this.site, {this.parentAreaId}) {
     pageSize = 8;
   }
 
@@ -27,7 +29,10 @@ class HomeListController extends BasePageController<LiveRoomItem> {
     // 缓存耗尽时从 API 取新一页
     if (_cachedItems.isEmpty) {
       _apiPage++;
-      var result = await site.liveSite.getRecommendRooms(page: _apiPage);
+      var result = await site.liveSite.getRecommendRooms(
+        page: _apiPage,
+        parentAreaId: parentAreaId,
+      );
       _cachedItems = result.items;
     }
 

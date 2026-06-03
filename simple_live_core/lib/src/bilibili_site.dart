@@ -37,6 +37,8 @@ class BiliBiliSite implements LiveSite {
   String buvid3 = "";
   String buvid4 = "";
   String accessId = "";
+  String vajraBusinessKey = "";
+
   Future<Map<String, String>> getHeader() async {
     if (buvid3.isEmpty) {
       var buvidInfo = await getBuvid();
@@ -96,15 +98,13 @@ class BiliBiliSite implements LiveSite {
     const baseUrl =
         "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList";
 
+    var vajraKey = await getVajraKey();
+    var url = "$baseUrl?platform=web&parent_area_id=${category.parentId}&area_id=${category.id}&sort_type=online&page=$page&web_location=444.253&vajra_business_key=$vajraKey";
+    var queryParams = await getWbiSign(url);
+
     var result = await HttpClient.instance.getJson(
       baseUrl,
-      queryParameters: {
-        "platform": "web",
-        "parent_area_id": category.parentId,
-        "area_id": category.id,
-        "sort_type": "online",
-        "page": page.toString(),
-      },
+      queryParameters: queryParams,
       header: await getHeader(),
     );
 
@@ -219,7 +219,48 @@ class BiliBiliSite implements LiveSite {
   }
 
   @override
-  Future<LiveCategoryResult> getRecommendRooms({int page = 1}) async {
+  Future<LiveCategoryResult> getRecommendRooms({int page = 1, String? parentAreaId}) async {
+    if (parentAreaId != null) {
+      // 分区筛选使用 getList 接口（需要 WBI 签名 + vajra 校验）
+      const baseUrl =
+          "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList";
+      var vajraKey = await getVajraKey();
+      var url = "$baseUrl?platform=web&parent_area_id=$parentAreaId&sort_type=online&page=$page&page_size=30&web_location=444.253&vajra_business_key=$vajraKey";
+      var queryParams = await getWbiSign(url);
+      var result = await HttpClient.instance.getJson(
+        baseUrl,
+        queryParameters: queryParams,
+        header: await getHeader(),
+      );
+
+      var data = result["data"];
+      if (data == null) {
+        throw CoreError(
+          "获取分区房间列表失败: ${result["message"] ?? "未知错误"}",
+          statusCode: 0,
+        );
+      }
+      var hasMore = data["has_more"] == 1;
+      var items = <LiveRoomItem>[];
+      var list = data["list"] as List?;
+      if (list != null) {
+        for (var item in list) {
+          var roomItem = LiveRoomItem(
+            roomId: item["roomid"].toString(),
+            title: item["title"].toString(),
+            cover: "${item["cover"]}@400w.jpg",
+            userName: item["uname"].toString(),
+            online: int.tryParse(item["online"].toString()) ?? 0,
+            areaName: asT<String?>(item["area_name"]),
+            parentAreaName: asT<String?>(item["parent_area_name"]),
+          );
+          items.add(roomItem);
+        }
+      }
+      return LiveCategoryResult(hasMore: hasMore, items: items);
+    }
+
+    // 全站推荐使用 getListByArea 接口（需要 WBI 签名）
     const baseUrl =
         "https://api.live.bilibili.com/xlive/web-interface/v1/second/getListByArea";
     var url = "$baseUrl?platform=web&sort=online&page_size=30&page=$page";
@@ -644,5 +685,23 @@ class BiliBiliSite implements LiveSite {
         ?.replaceAll("\\", "");
     accessId = id ?? "";
     return accessId;
+  }
+
+  /// 获取 B站 live 页面的 vajra_business_key（分区列表反爬校验用）
+  Future<String> getVajraKey() async {
+    if (vajraBusinessKey.isNotEmpty) {
+      return vajraBusinessKey;
+    }
+
+    var resp = await HttpClient.instance.getText(
+      "https://live.bilibili.com/",
+      queryParameters: {},
+      header: await getHeader(),
+    );
+    var key = RegExp(r'"vajra_business_key":"(.*?)"')
+        .firstMatch(resp)
+        ?.group(1);
+    vajraBusinessKey = key ?? "";
+    return vajraBusinessKey;
   }
 }
