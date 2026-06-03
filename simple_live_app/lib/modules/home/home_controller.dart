@@ -44,7 +44,7 @@ class HomeController extends GetxController {
     _loadAreas();
   }
 
-  /// 初始化默认的 "推荐" 控制器
+  /// 初始化默认的 "推荐" 控制器（category=null，不分过滤）
   void _initDefaultController() {
     final site = Sites.allSites[Constant.kBiliBili]!;
     final ctrl = HomeListController(site);
@@ -59,8 +59,9 @@ class HomeController extends GetxController {
       final site = Sites.allSites[Constant.kBiliBili]!;
       areas.value = await site.liveSite.getCategores();
       sectionNames.value = ["推荐", ...areas.map((a) => a.name)];
+      // 启动时预加载热门分区的首屏数据
+      _preWarmPartitions();
     } catch (e) {
-      // 加载失败时保持默认的 "推荐"
       sectionNames.value = ["推荐"];
     } finally {
       isLoadingAreas.value = false;
@@ -68,15 +69,17 @@ class HomeController extends GetxController {
   }
 
   /// 获取或创建指定索引的分区控制器
+  ///
+  /// index=0 → "推荐" (category=null)
+  /// index>0 → 对应 areas[index-1] 的分区（传 LiveCategory 对象）
   HomeListController getController(int index) {
     if (!_controllers.containsKey(index)) {
       final site = Sites.allSites[Constant.kBiliBili]!;
-      // 客户端侧按分区名称筛选：index>0 时取 areas[index-1].name
-      String? filterName;
+      LiveCategory? category;
       if (index > 0 && index - 1 < areas.length) {
-        filterName = areas[index - 1].name;
+        category = areas[index - 1];
       }
-      final ctrl = HomeListController(site, filterAreaName: filterName);
+      final ctrl = HomeListController(site, category: category);
       Get.put(ctrl, tag: 'home_section_$index');
       _controllers[index] = ctrl;
     }
@@ -94,7 +97,6 @@ class HomeController extends GetxController {
     final ctrl = getController(index);
     if (!_activeControllers.contains(index)) {
       _activeControllers.add(index);
-      // 首次访问该分区时主动加载数据
       ctrl.refreshData();
     }
   }
@@ -105,6 +107,21 @@ class HomeController extends GetxController {
 
   void toSearch() {
     Get.toNamed(RoutePath.kSearch);
+  }
+
+  /// 启动时预加载前 N 个分区的首屏数据（错开执行避免瞬间高并发）
+  void _preWarmPartitions() {
+    if (areas.isEmpty) return;
+    final warmCount = areas.length < 3 ? areas.length : 3;
+    for (var i = 0; i < warmCount; i++) {
+      Future.delayed(Duration(milliseconds: (i + 1) * 500), () {
+        final ctrl = getController(i + 1);
+        if (!_activeControllers.contains(i + 1)) {
+          _activeControllers.add(i + 1);
+          ctrl.refreshData();
+        }
+      });
+    }
   }
 
   @override

@@ -97,7 +97,11 @@ class BiliBiliSite implements LiveSite {
     const baseUrl =
         "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList";
 
-    var url = "$baseUrl?platform=web&parent_area_id=${category.parentId}&area_id=${category.id}&sort_type=online&page=$page";
+    // vajra_business_key 始终为空字符串（不是动态提取的），w_webid 来自页面 access_id
+    var wWebId = await getAccessId();
+    var url = "$baseUrl?platform=web&parent_area_id=${category.parentId}"
+        "&area_id=${category.id}&sort_type=&web_location=444.253&page=$page"
+        "&vajra_business_key=&w_webid=$wWebId";
     var queryParams = await getWbiSign(url);
 
     var result = await HttpClient.instance.getJson(
@@ -231,9 +235,13 @@ class BiliBiliSite implements LiveSite {
       header: await getHeader(),
     );
 
-    var hasMore = (result["data"]["list"] as List).isNotEmpty;
+    var data = result["data"];
+    if (data == null) {
+      return LiveCategoryResult(hasMore: false, items: []);
+    }
+    var hasMore = (data["list"] as List).isNotEmpty;
     var items = <LiveRoomItem>[];
-    for (var item in result["data"]["list"]) {
+    for (var item in data["list"]) {
       var roomItem = LiveRoomItem(
         roomId: item["roomid"].toString(),
         title: item["title"].toString(),
@@ -643,5 +651,14 @@ class BiliBiliSite implements LiveSite {
         ?.replaceAll("\\", "");
     accessId = id ?? "";
     return accessId;
+  }
+
+  /// vajra_business_key — 始终为空字符串
+  ///
+  /// 经验证（DTV 项目、B站 当前行为），second/getList 接口要求的
+  /// vajra_business_key 始终是空字符串 ""，不需要从 HTML 动态提取。
+  /// 保留方法以备未来 B站 修改机制时恢复提取逻辑。
+  Future<String> getVajraKey() async {
+    return "";
   }
 }
