@@ -71,11 +71,12 @@ class HomeController extends GetxController {
   HomeListController getController(int index) {
     if (!_controllers.containsKey(index)) {
       final site = Sites.allSites[Constant.kBiliBili]!;
-      String? parentAreaId;
+      // 客户端侧按分区名称筛选：index>0 时取 areas[index-1].name
+      String? filterName;
       if (index > 0 && index - 1 < areas.length) {
-        parentAreaId = areas[index - 1].id;
+        filterName = areas[index - 1].name;
       }
-      final ctrl = HomeListController(site, parentAreaId: parentAreaId);
+      final ctrl = HomeListController(site, filterAreaName: filterName);
       Get.put(ctrl, tag: 'home_section_$index');
       _controllers[index] = ctrl;
     }
