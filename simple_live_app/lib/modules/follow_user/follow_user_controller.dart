@@ -24,17 +24,25 @@ class FollowUserController extends BasePageController<FollowUser> {
 
   @override
   Future refreshData() async {
-    await FollowService.instance.loadData();
-    filterData();
-    super.refreshData();
+    try {
+      await FollowService.instance.loadData();
+      filterData();
+      pageEmpty.value = list.isEmpty;
+      pageError.value = false;
+    } catch (e) {
+      handleError(e, showPageError: true);
+    } finally {
+      pageLoadding.value = false;
+      easyRefreshController.finishRefresh();
+      easyRefreshController.resetLoadState();
+    }
   }
 
   @override
   Future<List<FollowUser>> getData(int page, int pageSize) async {
-    if (page > 1) return [];
-    filterData();
-    // ignore: invalid_use_of_protected_member
-    return list.value;
+    // FollowUserController doesn't use paginated network fetch.
+    // Data is loaded via FollowService.loadData() and filtered via filterData().
+    return [];
   }
 
   void filterData() {
