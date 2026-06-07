@@ -171,6 +171,9 @@ class LocalStorageService extends GetxService {
   /// 自定义分区收藏列表
   static const String kCustomCategories = "CustomCategories";
 
+  /// 首页默认分区
+  static const String kHomeDefaultCategory = "HomeDefaultCategory";
+
   late Box settingsBox;
   late Box<String> shieldBox;
 

@@ -10,6 +10,9 @@ class HomeListController extends BasePageController<LiveRoomItem> {
   /// 父分区对象，null 表示"推荐"（全站推荐，不过滤）
   final LiveCategory? category;
 
+  /// 子分区对象（自定义默认首页），非 null 时使用 getAreaRooms 加载
+  final LiveSubCategory? subCategory;
+
   /// 房间池：所有已获取但尚未展示的直播间
   final List<LiveRoomItem> _roomPool = [];
 
@@ -28,13 +31,17 @@ class HomeListController extends BasePageController<LiveRoomItem> {
   /// 加载进度 0.0~1.0，供 UI 显示百分比进度圈
   var loadingProgress = 0.0.obs;
 
-  HomeListController(this.site, {this.category}) {
+  HomeListController(this.site, {this.category, this.subCategory}) {
     pageSize = 15;
   }
 
-  /// getMoreRecList 每页只有 12 间房（旧 getListByArea 是 30 间/页）。
-  /// 过滤分区需要 ~300 间/批以保证匹配量，推荐流 ~100 间/批即可。
-  int get _batchSize => category != null ? 25 : 10;
+  /// 当 subCategory 不为 null 时，使用 getAreaRooms 直接加载（6页/批，房间已预过滤）
+  /// 当 category 不为 null 时，使用推荐 API + 客户端增强过滤（25页/批）
+  /// 否则为"推荐"模式（10页/批，不过滤）
+  int get _batchSize {
+    if (subCategory != null) return 6;
+    return category != null ? 25 : 10;
+  }
 
   @override
   Future refreshData() async {
@@ -56,23 +63,31 @@ class HomeListController extends BasePageController<LiveRoomItem> {
 
   /// 补充房间池
   ///
-  /// 统一使用推荐 API + 客户端增强过滤（放弃 getList，海外 IP 不可用）。
-  /// 过滤分区拉 12 页/批（360 间），推荐 tab 拉 4 页（120 间）。
-  /// 最多重试 2 次空池补充（避免过滤率 0% 导致的无限循环）。
+  /// subCategory ≠ null → 使用 getAreaRooms 直接加载（无需客户端匹配）
+  /// 否则 → 推荐 API + 客户端增强过滤（原有逻辑）。
+  /// 最多重试 2 次空池补充。
   Future _refillPool() async {
     if (_fetching) return;
     _fetching = true;
     final gen = _generation;
+    final useAreaApi = subCategory != null;
 
     var retries = 0;
     try {
-      await _refillFromRecommendations(gen);
-      // 如果池子还空，再试一次（可能是某批 API 页面正好没命中分区）
+      if (useAreaApi) {
+        await _refillFromArea(gen);
+      } else {
+        await _refillFromRecommendations(gen);
+      }
       while (_roomPool.isEmpty && retries < 2 && _generation == gen) {
         retries++;
         debugPrint(
             '[HomeList] pool empty after batch, retry #$retries from p$_recApiPage');
-        await _refillFromRecommendations(gen);
+        if (useAreaApi) {
+          await _refillFromArea(gen);
+        } else {
+          await _refillFromRecommendations(gen);
+        }
       }
       if (_roomPool.isEmpty) {
         debugPrint(
@@ -142,6 +157,48 @@ class HomeListController extends BasePageController<LiveRoomItem> {
     if (totalFetched > 0) {
       debugPrint(
           '[HomeList] batch done: fetched=$totalFetched matched=$totalMatched added=$totalAdded pool=${_roomPool.length}');
+    }
+  }
+
+  /// 通过 getAreaRooms 直接拉取指定子分区房间（无需客户端过滤）
+  Future _refillFromArea(int gen) async {
+    var totalFetched = 0;
+    var totalAdded = 0;
+
+    for (var i = 0; i < _batchSize; i++) {
+      if (_generation != gen) return;
+
+      try {
+        final result = await site.liveSite.getAreaRooms(
+          subCategory!.id,
+          page: _recApiPage,
+        );
+        _recApiPage++;
+        var items = result.items;
+        totalFetched += items.length;
+
+        for (final item in items) {
+          if (_seenRoomIds.add(item.roomId)) {
+            _roomPool.add(item);
+            totalAdded++;
+          }
+        }
+
+        loadingProgress.value = (i + 1) / _batchSize;
+
+        if (!result.hasMore) {
+          loadingProgress.value = 1.0;
+          break;
+        }
+      } catch (e) {
+        debugPrint('[HomeList] getAreaRooms p$_recApiPage failed: $e');
+        _recApiPage++;
+      }
+    }
+
+    if (totalFetched > 0) {
+      debugPrint(
+          '[HomeList] area batch done: fetched=$totalFetched added=$totalAdded pool=${_roomPool.length}');
     }
   }
 

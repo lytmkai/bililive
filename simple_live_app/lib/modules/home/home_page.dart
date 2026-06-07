@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/models/db/fav_category.dart';
+import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
@@ -68,14 +69,23 @@ class HomePage extends GetView<HomeController> {
   Widget _buildSectionSelector(BuildContext context) {
     return Obx(() {
       final names = controller.sectionNames;
-      final currentName = names.isNotEmpty && controller.selectedSectionIndex.value < names.length
+      final currentName = names.isNotEmpty &&
+              controller.selectedSectionIndex.value < names.length
           ? names[controller.selectedSectionIndex.value]
           : '推荐';
+      final isCustom =
+          controller.hasCustomSubCategory &&
+          controller.selectedSectionIndex.value == 1;
       return GestureDetector(
         onTap: () => _showCategoryMenu(context),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isCustom)
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Icon(Icons.push_pin, size: 14),
+              ),
             Flexible(
               child: Text(
                 currentName,
@@ -159,12 +169,24 @@ class _CategoryMenuSheet extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
+          if (controller.hasCustomSubCategory)
+            _CustomSectionTile(
+              title: controller.customSubCategory!.name,
+              onTap: () {
+                controller.switchSection(1);
+                Navigator.pop(context);
+              },
+              onUnpin: () {
+                controller.clearCustomSubCategory();
+                Navigator.pop(context);
+              },
+            ),
           const Divider(height: 1),
           for (var i = 0; i < areas.length; i++)
             _ParentCategoryTile(
               category: areas[i],
               onSelect: () {
-                controller.switchSection(i + 1);
+                controller.switchSection(i + (controller.hasCustomSubCategory ? 2 : 1));
                 Navigator.pop(context);
               },
               onSubSelect: (name) {
@@ -172,6 +194,14 @@ class _CategoryMenuSheet extends StatelessWidget {
                 Future.delayed(Duration.zero, () {
                   controller.navigateToSubCategory(areas[i], name);
                 });
+              },
+              onSubPin: (sub) {
+                final saved = SavedSubCategory.fromLiveSubCategory(
+                  sub,
+                  parentName: areas[i].name,
+                );
+                controller.setCustomSubCategory(saved);
+                Navigator.pop(context);
               },
             ),
           if (favs.isNotEmpty) ...[
@@ -182,17 +212,28 @@ class _CategoryMenuSheet extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: Colors.grey)),
             ),
             for (final f in favs)
-              _SectionTile(
+              _FavSectionTile(
                 title: '${f.parentAreaName} · ${f.areaName}',
-                isFavorite: true,
                 onTap: () {
-                  final sub = LiveSubCategory(
+                  Navigator.pop(context);
+                  Future.delayed(Duration.zero, () {
+                    final sub = LiveSubCategory(
+                      id: f.areaId,
+                      name: f.areaName,
+                      parentId: f.parentAreaId,
+                    );
+                    final site = Sites.allSites[Constant.kBiliBili]!;
+                    AppNavigator.toCategoryDetail(site: site, category: sub);
+                  });
+                },
+                onPin: () {
+                  final saved = SavedSubCategory(
                     id: f.areaId,
                     name: f.areaName,
                     parentId: f.parentAreaId,
+                    parentName: f.parentAreaName,
                   );
-                  final site = Sites.allSites[Constant.kBiliBili]!;
-                  AppNavigator.toCategoryDetail(site: site, category: sub);
+                  controller.setCustomSubCategory(saved);
                   Navigator.pop(context);
                 },
               ),
@@ -208,11 +249,13 @@ class _ParentCategoryTile extends StatefulWidget {
   final LiveCategory category;
   final VoidCallback onSelect;
   final void Function(String areaName) onSubSelect;
+  final void Function(LiveSubCategory sub) onSubPin;
 
   const _ParentCategoryTile({
     required this.category,
     required this.onSelect,
     required this.onSubSelect,
+    required this.onSubPin,
   });
 
   @override
@@ -260,13 +303,25 @@ class _ParentCategoryTileState extends State<_ParentCategoryTile> {
               onTap: () => widget.onSubSelect(sub.name),
               child: Padding(
                 padding: const EdgeInsets.only(
-                    left: 36, right: 20, top: 8, bottom: 8),
+                    left: 36, right: 12, top: 8, bottom: 8),
                 child: Row(
                   children: [
                     const Icon(Icons.subdirectory_arrow_right,
                         size: 16, color: Colors.grey),
                     const SizedBox(width: 4),
-                    Text(sub.name, style: const TextStyle(fontSize: 14)),
+                    Expanded(
+                      child: Text(sub.name,
+                          style: const TextStyle(fontSize: 14)),
+                    ),
+                    GestureDetector(
+                      onTap: () => widget.onSubPin(sub),
+                        child: const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: Icon(Icons.push_pin_outlined,
+                              size: 18, color: Colors.grey),
+                        ),
+                    ),
                   ],
                 ),
               ),
@@ -277,7 +332,7 @@ class _ParentCategoryTileState extends State<_ParentCategoryTile> {
   }
 }
 
-/// 简单分区项（推荐、收藏）
+/// 简单分区项（推荐）
 class _SectionTile extends StatelessWidget {
   final String title;
   final bool isFavorite;
@@ -303,6 +358,87 @@ class _SectionTile extends StatelessWidget {
               const SizedBox(width: 18),
             const SizedBox(width: 8),
             Text(title, style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 自定义分区项（底部菜单中，带取消固定按钮）
+class _CustomSectionTile extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+  final VoidCallback onUnpin;
+
+  const _CustomSectionTile({
+    required this.title,
+    required this.onTap,
+    required this.onUnpin,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.push_pin, size: 18, color: Colors.amber),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(title, style: const TextStyle(fontSize: 16)),
+            ),
+            GestureDetector(
+              onTap: onUnpin,
+              child: const SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(Icons.close, size: 18, color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 收藏分区项（带固定图标）
+class _FavSectionTile extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+  final VoidCallback onPin;
+
+  const _FavSectionTile({
+    required this.title,
+    required this.onTap,
+    required this.onPin,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.star, size: 18, color: Colors.amber),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(title, style: const TextStyle(fontSize: 16)),
+            ),
+            GestureDetector(
+              onTap: onPin,
+              child: const SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(Icons.push_pin_outlined,
+                    size: 18, color: Colors.grey),
+              ),
+            ),
           ],
         ),
       ),

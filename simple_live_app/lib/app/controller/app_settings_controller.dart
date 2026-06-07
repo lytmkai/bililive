@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/sites.dart';
+import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/services/local_storage_service.dart';
 
 import 'package:flutter/material.dart';
@@ -18,6 +20,8 @@ class AppSettingsController extends GetxController {
   var themeMode = 0.obs;
 
   var firstRun = false;
+
+  var homeDefaultCategory = Rxn<SavedSubCategory>();
 
   @override
   void onInit() {
@@ -144,6 +148,8 @@ class AppSettingsController extends GetxController {
     initSiteSort();
     initHomeSort();
 
+    loadHomeDefaultCategory();
+
     super.onInit();
   }
 
@@ -185,6 +191,30 @@ class AppSettingsController extends GetxController {
     }
 
     homeSort.value = sort;
+  }
+
+  void loadHomeDefaultCategory() {
+    final raw = LocalStorageService.instance
+        .getValue<String>(LocalStorageService.kHomeDefaultCategory, '');
+    if (raw.isEmpty) return;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      homeDefaultCategory.value = SavedSubCategory.fromJson(json);
+    } catch (_) {
+      homeDefaultCategory.value = null;
+    }
+  }
+
+  void setHomeDefaultCategory(SavedSubCategory? cat) {
+    homeDefaultCategory.value = cat;
+    if (cat == null) {
+      LocalStorageService.instance
+          .removeValue(LocalStorageService.kHomeDefaultCategory);
+    } else {
+      final encoded = jsonEncode(cat.toJson());
+      LocalStorageService.instance
+          .setValue(LocalStorageService.kHomeDefaultCategory, encoded);
+    }
   }
 
   void setNoFirstRun() {

@@ -5,6 +5,8 @@ import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/models/db/fav_category.dart';
+import 'package:simple_live_app/app/controller/app_settings_controller.dart';
+import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_controller.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
 import 'package:simple_live_app/routes/route_path.dart';
@@ -35,6 +37,13 @@ class HomeController extends GetxController {
   /// 收藏的子分区列表
   var favCategories = <FavCategory>[].obs;
 
+  /// 自定义默认首页子分区
+  SavedSubCategory? get customSubCategory =>
+      AppSettingsController.instance.homeDefaultCategory.value;
+
+  /// 是否已设置自定义首页子分区
+  bool get hasCustomSubCategory => customSubCategory != null;
+
   @override
   void onInit() {
     super.onInit();
@@ -47,6 +56,11 @@ class HomeController extends GetxController {
       },
     );
     _initDefaultController();
+    // 如果有自定义子分区，默认选中它（索引 1）
+    if (hasCustomSubCategory) {
+      selectedSectionIndex.value = 1;
+    }
+    _initCustomController();
     _loadAreas();
     loadFavorites();
   }
@@ -63,17 +77,43 @@ class HomeController extends GetxController {
     ctrl.refreshData();
   }
 
+  /// 初始化自定义子分区控制器
+  void _initCustomController() {
+    if (!hasCustomSubCategory) return;
+    final site = Sites.allSites[Constant.kBiliBili]!;
+    final ctrl = HomeListController(
+      site,
+      subCategory: customSubCategory!.toLiveSubCategory(),
+    );
+    Get.put(ctrl, tag: 'home_section_1');
+    _controllers[1] = ctrl;
+    _activeControllers.add(1);
+    ctrl.refreshData();
+  }
+
   /// 从 B站 API 加载分区列表
   Future<void> _loadAreas() async {
     isLoadingAreas.value = true;
     try {
       final site = Sites.allSites[Constant.kBiliBili]!;
       areas.value = await site.liveSite.getCategores();
-      sectionNames.value = ["推荐", ...areas.map((a) => a.name)];
+      if (hasCustomSubCategory) {
+        sectionNames.value = [
+          "推荐",
+          customSubCategory!.name,
+          ...areas.map((a) => a.name),
+        ];
+      } else {
+        sectionNames.value = ["推荐", ...areas.map((a) => a.name)];
+      }
       // 启动时预加载热门分区的首屏数据
       _preWarmPartitions();
     } catch (e) {
-      sectionNames.value = ["推荐"];
+      if (hasCustomSubCategory) {
+        sectionNames.value = ["推荐", customSubCategory!.name];
+      } else {
+        sectionNames.value = ["推荐"];
+      }
     } finally {
       isLoadingAreas.value = false;
     }
@@ -82,17 +122,29 @@ class HomeController extends GetxController {
   /// 获取或创建指定索引的分区控制器
   ///
   /// index=0 → "推荐" (category=null)
-  /// index>0 → 对应 areas[index-1] 的分区（传 LiveCategory 对象）
+  /// index=1 → 自定义子分区（如果 customSubCategory 不为 null）
+  /// index>=2（或 index>=1 无自定义时）→ 父分区 areas[index-offset]
   HomeListController getController(int index) {
     if (!_controllers.containsKey(index)) {
       final site = Sites.allSites[Constant.kBiliBili]!;
-      LiveCategory? category;
-      if (index > 0 && index - 1 < areas.length) {
-        category = areas[index - 1];
+      if (index == 1 && hasCustomSubCategory) {
+        final ctrl = HomeListController(
+          site,
+          subCategory: customSubCategory!.toLiveSubCategory(),
+        );
+        Get.put(ctrl, tag: 'home_section_$index');
+        _controllers[index] = ctrl;
+      } else {
+        final areaOffset = hasCustomSubCategory ? 2 : 1;
+        final areaIndex = index - areaOffset;
+        LiveCategory? category;
+        if (areaIndex >= 0 && areaIndex < areas.length) {
+          category = areas[areaIndex];
+        }
+        final ctrl = HomeListController(site, category: category);
+        Get.put(ctrl, tag: 'home_section_$index');
+        _controllers[index] = ctrl;
       }
-      final ctrl = HomeListController(site, category: category);
-      Get.put(ctrl, tag: 'home_section_$index');
-      _controllers[index] = ctrl;
     }
     return _controllers[index]!;
   }
@@ -152,6 +204,39 @@ class HomeController extends GetxController {
           ctrl.refreshData();
         }
       });
+    }
+  }
+
+  /// 设置自定义默认首页子分区
+  void setCustomSubCategory(SavedSubCategory cat) {
+    AppSettingsController.instance.setHomeDefaultCategory(cat);
+    _controllers.remove(1);
+    _activeControllers.remove(1);
+    _initCustomController();
+    _rebuildSectionNames();
+    selectedSectionIndex.value = 1;
+  }
+
+  /// 清除自定义默认首页子分区
+  void clearCustomSubCategory() {
+    AppSettingsController.instance.setHomeDefaultCategory(null);
+    _controllers.remove(1);
+    _activeControllers.remove(1);
+    _rebuildSectionNames();
+    if (selectedSectionIndex.value == 1) {
+      selectedSectionIndex.value = 0;
+    }
+  }
+
+  void _rebuildSectionNames() {
+    if (hasCustomSubCategory) {
+      sectionNames.value = [
+        "推荐",
+        customSubCategory!.name,
+        ...areas.map((a) => a.name),
+      ];
+    } else {
+      sectionNames.value = ["推荐", ...areas.map((a) => a.name)];
     }
   }
 
