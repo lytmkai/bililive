@@ -66,6 +66,7 @@ dependencies:
 
   # 录音
   ffmpeg_kit_flutter_new_https_gpl: ^2.1.0 # 录音
+  open_filex: ^4.7.0 # 打开文件/文件夹
 
   flutter:
     sdk: flutter

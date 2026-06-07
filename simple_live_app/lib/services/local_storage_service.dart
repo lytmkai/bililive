@@ -177,6 +177,9 @@ class LocalStorageService extends GetxService {
   /// 音频保存路径
   static const String kAudioSavePath = "AudioSavePath";
 
+  /// 录音不再显示确认
+  static const String kRecordingNoConfirm = "RecordingNoConfirm";
+
   late Box settingsBox;
   late Box<String> shieldBox;
 

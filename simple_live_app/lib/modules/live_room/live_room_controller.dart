@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -25,6 +26,7 @@ import 'package:simple_live_app/modules/live_room/player/player_controller.dart'
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
+import 'package:simple_live_app/services/local_storage_service.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -970,15 +972,85 @@ ${error?.stackTrace}''');
       return;
     }
 
-    // 防误触：确认对话框
-    var confirmed = await Utils.showAlertDialog(
-      "将录制当前直播间的音频并保存为 M4A 文件",
-      title: "录音",
-      confirm: "开始录音",
-      cancel: "取消",
-    );
-    if (!confirmed) return;
+    // 防误触：确认对话框（自定义按钮布局，RED圆形REC图标）
+    // 检查是否已勾选"不再显示"
+    var noConfirm = LocalStorageService.instance
+        .getValue(LocalStorageService.kRecordingNoConfirm, false);
+    if (noConfirm) {
+      _startRecordingWithPath();
+      return;
+    }
 
+    // 防误触：确认对话框
+    var noConfirmAgain = false;
+    var confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text("开始录音"),
+        content: StatefulBuilder(
+          builder: (context, setInnerState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("将录制当前直播间的音频并保存为 M4A 文件"),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => setInnerState(
+                    () => noConfirmAgain = !noConfirmAgain),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      noConfirmAgain
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank,
+                      size: 20,
+                      color: noConfirmAgain
+                          ? Get.theme.colorScheme.primary
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text("不再显示", style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              var dir = await FilePicker.platform.getDirectoryPath();
+              if (dir != null) {
+                AppSettingsController.instance.setAudioSavePath(dir);
+                SmartDialog.showToast("存储路径已更改");
+              }
+            },
+            child: const Text("选择路径"),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text("取消"),
+          ),
+          TextButton(
+            onPressed: () {
+              if (noConfirmAgain) {
+                LocalStorageService.instance
+                    .setValue(LocalStorageService.kRecordingNoConfirm, true);
+              }
+              Get.back(result: true);
+            },
+            child: const Text("确定"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    _startRecordingWithPath();
+  }
+
+  /// 获取保存路径并开始录音
+  void _startRecordingWithPath() async {
     // 从预配置路径或默认路径获取保存位置
     var fileName =
         "${detail.value?.userName ?? "live"}_${DateTime.now().millisecondsSinceEpoch}.m4a";

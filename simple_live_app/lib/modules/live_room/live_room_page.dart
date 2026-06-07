@@ -245,9 +245,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           Remix.stop_circle_line,
                           color: Colors.red,
                         ),
-                        label: Text(
-                          "录音 ${controller.recordingDuration.value}",
-                        ),
+                        label: const Text("停止"),
                       )
                     : TextButton.icon(
                         style: TextButton.styleFrom(
@@ -483,9 +481,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           Remix.stop_circle_line,
                           color: Colors.red,
                         ),
-                        label: Text(
-                          "录音 ${controller.recordingDuration.value}",
-                        ),
+                        label: const Text("停止"),
                       )
                     : TextButton.icon(
                         style: TextButton.styleFrom(
