@@ -66,6 +66,20 @@ class CustomCategoryViewController extends GetxController {
 
   var savedList = <SavedSubCategory>[].obs;
 
+  /// 操作模式：null=正常, pin=图钉模式, delete=删除模式
+  var mode = Rx<String?>(null);
+  bool get isPinMode => mode.value == 'pin';
+  bool get isDeleteMode => mode.value == 'delete';
+  bool get isNormalMode => mode.value == null;
+
+  void togglePinMode() {
+    mode.value = mode.value == 'pin' ? null : 'pin';
+  }
+
+  void toggleDeleteMode() {
+    mode.value = mode.value == 'delete' ? null : 'delete';
+  }
+
   @override
   void onInit() {
     super.onInit();

@@ -4,16 +4,16 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/sites.dart';
-import 'package:simple_live_app/models/db/fav_category.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_controller.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
 import 'package:simple_live_app/routes/route_path.dart';
-import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 
 class HomeController extends GetxController {
+  static HomeController get instance => Get.find<HomeController>();
+
   StreamSubscription<dynamic>? streamSubscription;
 
   /// B站分区列表（从 API 加载）
@@ -33,9 +33,6 @@ class HomeController extends GetxController {
 
   /// 已激活（加载过数据）的分区索引
   final Set<int> _activeControllers = {};
-
-  /// 收藏的子分区列表
-  var favCategories = <FavCategory>[].obs;
 
   /// 自定义默认首页子分区
   SavedSubCategory? get customSubCategory =>
@@ -62,7 +59,6 @@ class HomeController extends GetxController {
     }
     _initCustomController();
     _loadAreas();
-    loadFavorites();
   }
 
   /// 初始化默认的 "推荐" 控制器（category=null，不分过滤）
@@ -170,11 +166,6 @@ class HomeController extends GetxController {
 
   void toSearch() {
     Get.toNamed(RoutePath.kSearch);
-  }
-
-  /// 加载收藏的分区列表
-  void loadFavorites() {
-    favCategories.value = DBService.instance.getFavCategories();
   }
 
   /// 通过子分区名查找子分区对象并跳转到分类详情页

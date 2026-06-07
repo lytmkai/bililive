@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/constant.dart';
-import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
-import 'package:simple_live_app/routes/app_navigation.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 
 class HomePage extends GetView<HomeController> {
@@ -118,7 +116,6 @@ class HomePage extends GetView<HomeController> {
   }
 
   void _showCategoryMenu(BuildContext context) {
-    controller.loadFavorites();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -128,7 +125,6 @@ class HomePage extends GetView<HomeController> {
       builder: (_) => _CategoryMenuSheet(
         controller: controller,
         areas: controller.areas.toList(),
-        favs: controller.favCategories.toList(),
       ),
     );
   }
@@ -152,12 +148,10 @@ class HomePage extends GetView<HomeController> {
 class _CategoryMenuSheet extends StatelessWidget {
   final HomeController controller;
   final List<LiveCategory> areas;
-  final List<FavCategory> favs;
 
   const _CategoryMenuSheet({
     required this.controller,
     required this.areas,
-    required this.favs,
   });
 
   @override
@@ -220,40 +214,6 @@ class _CategoryMenuSheet extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
-          if (favs.isNotEmpty) ...[
-            const Divider(indent: 16, endIndent: 16),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
-              child: Text('我的收藏',
-                  style: TextStyle(fontSize: 14, color: Colors.grey)),
-            ),
-            for (final f in favs)
-              _FavSectionTile(
-                title: '${f.parentAreaName} · ${f.areaName}',
-                onTap: () {
-                  Navigator.pop(context);
-                  Future.delayed(Duration.zero, () {
-                    final sub = LiveSubCategory(
-                      id: f.areaId,
-                      name: f.areaName,
-                      parentId: f.parentAreaId,
-                    );
-                    final site = Sites.allSites[Constant.kBiliBili]!;
-                    AppNavigator.toCategoryDetail(site: site, category: sub);
-                  });
-                },
-                onPin: () {
-                  final saved = SavedSubCategory(
-                    id: f.areaId,
-                    name: f.areaName,
-                    parentId: f.parentAreaId,
-                    parentName: f.parentAreaName,
-                  );
-                  controller.setCustomSubCategory(saved);
-                  Navigator.pop(context);
-                },
-              ),
-          ],
         ],
       ),
     );
@@ -421,43 +381,4 @@ class _CustomSectionTile extends StatelessWidget {
   }
 }
 
-/// 收藏分区项（带固定图标）
-class _FavSectionTile extends StatelessWidget {
-  final String title;
-  final VoidCallback onTap;
-  final VoidCallback onPin;
 
-  const _FavSectionTile({
-    required this.title,
-    required this.onTap,
-    required this.onPin,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          children: [
-            const Icon(Icons.star, size: 18, color: Colors.amber),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(title, style: const TextStyle(fontSize: 16)),
-            ),
-            GestureDetector(
-              onTap: onPin,
-              child: const SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(Icons.push_pin_outlined,
-                    size: 18, color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
