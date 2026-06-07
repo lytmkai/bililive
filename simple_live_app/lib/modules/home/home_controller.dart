@@ -52,11 +52,15 @@ class HomeController extends GetxController {
   }
 
   /// 初始化默认的 "推荐" 控制器（category=null，不分过滤）
+  ///
+  /// 同时立即触发首屏加载，避免首次进入主页时推荐列表空白。
   void _initDefaultController() {
     final site = Sites.allSites[Constant.kBiliBili]!;
     final ctrl = HomeListController(site);
     Get.put(ctrl, tag: 'home_section_0');
     _controllers[0] = ctrl;
+    _activeControllers.add(0);
+    ctrl.refreshData();
   }
 
   /// 从 B站 API 加载分区列表

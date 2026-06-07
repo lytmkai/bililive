@@ -16,11 +16,25 @@ class HomePage extends GetView<HomeController> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
-        leading: IconButton(
-          onPressed: () => controller.currentController.refreshData(),
-          icon: const Icon(Icons.refresh),
-          tooltip: '刷新',
-        ),
+        leading: Obx(() {
+          final isLoading =
+              controller.currentController.pageLoadding.value;
+          if (isLoading) {
+            return const Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            );
+          }
+          return IconButton(
+            onPressed: () => controller.currentController.refreshData(),
+            icon: const Icon(Icons.refresh),
+            tooltip: '刷新',
+          );
+        }),
         title: _buildSectionSelector(context),
         actions: [
           IconButton(
