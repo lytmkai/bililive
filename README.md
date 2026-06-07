@@ -14,7 +14,6 @@
 BiliLive 是基于 [Simple Live](https://github.com/xiaoyaocz/dart_simple_live) 精简优化而来，专注于观看哔哩哔哩直播。
 
 **原项目**: [xiaoyaocz/dart_simple_live](https://github.com/xiaoyaocz/dart_simple_live) (GPL-3.0)
-**本仓库**: [BoooSAMA/dart_simple_live_bilibili](https://github.com/BoooSAMA/dart_simple_live_bilibili)
 
 ### 与原项目的主要区别
 
