@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/sites.dart';
-import 'package:simple_live_app/models/db/fav_category.dart';
 import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
@@ -81,20 +80,37 @@ class HomePage extends GetView<HomeController> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isCustom)
-              const Padding(
-                padding: EdgeInsets.only(right: 4),
-                child: Icon(Icons.push_pin, size: 14),
+            Text(
+              '切换分区',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.primary,
               ),
-            Flexible(
+            ),
+            const SizedBox(width: 6),
+            if (isCustom)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Icon(Icons.push_pin, size: 14,
+                    color: Theme.of(context).colorScheme.primary),
+              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Text(
                 currentName,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
               ),
             ),
             const SizedBox(width: 2),
-            const Icon(Icons.arrow_drop_down, size: 20),
+            Icon(Icons.arrow_drop_down, size: 20,
+                color: Theme.of(context).colorScheme.primary),
           ],
         ),
       );
