@@ -38,4 +38,7 @@ class RoutePath {
 
   /// 外观设置
   static const kAppstyleSetting = "/settings/appstyle";
+
+  /// 音频设置
+  static const kSettingsAudio = "/settings/audio";
 }

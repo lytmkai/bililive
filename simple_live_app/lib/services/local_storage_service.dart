@@ -174,6 +174,9 @@ class LocalStorageService extends GetxService {
   /// 首页默认分区
   static const String kHomeDefaultCategory = "HomeDefaultCategory";
 
+  /// 音频保存路径
+  static const String kAudioSavePath = "AudioSavePath";
+
   late Box settingsBox;
   late Box<String> shieldBox;
 

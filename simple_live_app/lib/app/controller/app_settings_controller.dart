@@ -99,6 +99,10 @@ class AppSettingsController extends GetxController {
       LocalStorageService.kPlayerVolume,
       100.0,
     );
+    audioSavePath.value = LocalStorageService.instance.getValue(
+      LocalStorageService.kAudioSavePath,
+      "",
+    );
     pipHideDanmu.value = LocalStorageService.instance
         .getValue(LocalStorageService.kPIPHideDanmu, true);
 
@@ -520,5 +524,13 @@ class AppSettingsController extends GetxController {
     playerForceHttps.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kPlayerForceHttps, e);
+  }
+
+  /// 音频保存路径
+  var audioSavePath = "".obs;
+  void setAudioSavePath(String e) {
+    audioSavePath.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAudioSavePath, e);
   }
 }

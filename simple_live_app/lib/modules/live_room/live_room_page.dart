@@ -112,7 +112,31 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         return Scaffold(
           appBar: AppBar(
             title: Obx(
-              () => Text(controller.detail.value?.title ?? "直播间"),
+              () => controller.isRecording.value
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(controller.detail.value?.title ?? "直播间"),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          controller.recordingDuration.value,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(controller.detail.value?.title ?? "直播间"),
             ),
             actions: buildAppbarActions(context),
           ),
@@ -208,6 +232,31 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 onPressed: controller.share,
                 icon: const Icon(Remix.share_line),
                 label: const Text("分享"),
+              ),
+              Obx(
+                () => controller.isRecording.value
+                    ? TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                          foregroundColor: Colors.red,
+                        ),
+                        onPressed: controller.toggleRecording,
+                        icon: const Icon(
+                          Remix.stop_circle_line,
+                          color: Colors.red,
+                        ),
+                        label: Text(
+                          "录音 ${controller.recordingDuration.value}",
+                        ),
+                      )
+                    : TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        onPressed: controller.toggleRecording,
+                        icon: const Icon(Remix.mic_line),
+                        label: const Text("录音"),
+                      ),
               ),
               TextButton.icon(
                 style: TextButton.styleFrom(
@@ -419,6 +468,33 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 onPressed: controller.share,
                 icon: const Icon(Remix.share_line),
                 label: const Text("分享"),
+              ),
+            ),
+            Expanded(
+              child: Obx(
+                () => controller.isRecording.value
+                    ? TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                          foregroundColor: Colors.red,
+                        ),
+                        onPressed: controller.toggleRecording,
+                        icon: const Icon(
+                          Remix.stop_circle_line,
+                          color: Colors.red,
+                        ),
+                        label: Text(
+                          "录音 ${controller.recordingDuration.value}",
+                        ),
+                      )
+                    : TextButton.icon(
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        onPressed: controller.toggleRecording,
+                        icon: const Icon(Remix.mic_line),
+                        label: const Text("录音"),
+                      ),
               ),
             ),
           ],

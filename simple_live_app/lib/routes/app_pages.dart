@@ -22,6 +22,7 @@ import 'package:simple_live_app/modules/settings/indexed_settings/indexed_settin
 import 'package:simple_live_app/modules/settings/other/other_settings_controller.dart';
 import 'package:simple_live_app/modules/settings/other/other_settings_page.dart';
 import 'package:simple_live_app/modules/settings/play_settings_page.dart';
+import 'package:simple_live_app/modules/settings/audio_settings_page.dart';
 
 import '../modules/indexed/indexed_page.dart';
 import 'route_path.dart';
@@ -129,6 +130,11 @@ class AppPages {
       bindings: [
         BindingsBuilder.put(() => OtherSettingsController()),
       ],
+    ),
+    //音频设置
+    GetPage(
+      name: RoutePath.kSettingsAudio,
+      page: () => const AudioSettingsPage(),
     ),
   ];
 }

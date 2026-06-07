@@ -9,8 +9,11 @@ import 'package:get/get.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:simple_live_app/app/app_style.dart';
+import 'package:ffmpeg_kit_flutter_new_https_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_https_gpl/return_code.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
+import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
@@ -93,6 +96,13 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
 
   /// 是否处于后台
   var isBackground = false;
+
+  /// 录音状态
+  var isRecording = false.obs;
+  var recordingDuration = "00:00".obs;
+  int? _recordingSessionId;
+  Timer? _recordingTimer;
+  int _recordingSeconds = 0;
 
   /// 直播间加载失败
   var loadError = false.obs;
@@ -915,6 +925,11 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     rxSite.value = site;
     rxRoomId.value = roomId;
 
+    // 停止录音
+    if (isRecording.value) {
+      _stopRecording();
+    }
+
     // 清除全部消息
     liveDanmaku.stop();
     messages.clear();
@@ -939,6 +954,126 @@ ${error?.toString()}
 ----------------
 ${error?.stackTrace}''');
     SmartDialog.showToast("已复制错误信息");
+  }
+
+  /// 切换录音状态
+  void toggleRecording() async {
+    if (isRecording.value) {
+      // 停止录音
+      _stopRecording();
+      SmartDialog.showToast("录音已停止");
+      return;
+    }
+
+    if (playUrls.isEmpty) {
+      SmartDialog.showToast("没有可用的播放地址");
+      return;
+    }
+
+    // 防误触：确认对话框
+    var confirmed = await Utils.showAlertDialog(
+      "将录制当前直播间的音频并保存为 M4A 文件",
+      title: "录音",
+      confirm: "开始录音",
+      cancel: "取消",
+    );
+    if (!confirmed) return;
+
+    // 从预配置路径或默认路径获取保存位置
+    var fileName =
+        "${detail.value?.userName ?? "live"}_${DateTime.now().millisecondsSinceEpoch}.m4a";
+    var saveDir = AppSettingsController.instance.audioSavePath.value;
+    if (saveDir.isEmpty || !await Directory(saveDir).exists()) {
+      var dir = await getApplicationDocumentsDirectory();
+      saveDir = dir.path;
+    }
+    var outputPath = "$saveDir/$fileName";
+
+    _startRecording(outputPath);
+  }
+
+  /// 构建FFmpeg参数列表
+  List<String> _buildFFmpegArgs(String outputPath) {
+    var args = <String>['-y'];
+
+    // HTTP headers
+    if (playHeaders != null && playHeaders!.isNotEmpty) {
+      var headerStr = playHeaders!.entries
+          .map((e) => '${e.key}: ${e.value}')
+          .join('\r\n');
+      args.addAll(['-headers', '$headerStr\r\n']);
+    }
+
+    // 重连参数（仅使用 FFmpeg n8.0 支持的顶级选项）
+    args.addAll([
+      '-reconnect',
+      '1',
+      '-reconnect_streamed',
+      '1',
+      '-reconnect_at_eof',
+      '1',
+      '-reconnect_delay_max',
+      '5',
+    ]);
+
+    // 输入输出（流拷贝，零编码，保留原厂AAC音质）
+    args.addAll(['-i', playUrls.first]);
+    args.addAll(['-c:a', 'copy', '-vn']);
+    args.addAll(['-f', 'mp4', outputPath]);
+
+    return args;
+  }
+
+  /// 开始录音
+  void _startRecording(String outputPath) async {
+    var args = _buildFFmpegArgs(outputPath);
+
+    Log.logPrint("开始录音: ${args.join(' ')}");
+
+    var session = await FFmpegKit.executeWithArgumentsAsync(
+      args,
+      (session) async {
+        var returnCode = await session.getReturnCode();
+        if (ReturnCode.isSuccess(returnCode)) {
+          Log.logPrint("录音成功完成");
+        } else if (ReturnCode.isCancel(returnCode)) {
+          Log.logPrint("录音已取消");
+        } else {
+          var err = await session.getOutput();
+          Log.logPrint("录音失败: $err");
+          SmartDialog.showToast("录音异常结束");
+        }
+        _recordingTimer?.cancel();
+        _recordingTimer = null;
+        isRecording.value = false;
+        _recordingSessionId = null;
+      },
+      (log) {
+        Log.logPrint("FFmpeg: ${log.getMessage()}");
+      },
+    );
+    _recordingSessionId = session.getSessionId();
+
+    isRecording.value = true;
+    _recordingSeconds = 0;
+    recordingDuration.value = "00:00";
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _recordingSeconds++;
+      var m = (_recordingSeconds ~/ 60).toString().padLeft(2, '0');
+      var s = (_recordingSeconds % 60).toString().padLeft(2, '0');
+      recordingDuration.value = "$m:$s";
+    });
+  }
+
+  /// 停止录音
+  void _stopRecording() {
+    if (_recordingSessionId != null) {
+      FFmpegKit.cancel(_recordingSessionId);
+      _recordingSessionId = null;
+    }
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+    isRecording.value = false;
   }
 
   @override
@@ -998,6 +1133,11 @@ ${error?.stackTrace}''');
     liveDanmaku.stop();
     danmakuController = null;
     _liveDurationTimer?.cancel(); // 页面关闭时取消定时器
+    _recordingTimer?.cancel();
+    if (_recordingSessionId != null) {
+      FFmpegKit.cancel(_recordingSessionId);
+      _recordingSessionId = null;
+    }
     super.onClose();
   }
 }
