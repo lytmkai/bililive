@@ -21,11 +21,41 @@ class CategoryDetailPage extends GetView<CategoryDetailController> {
       appBar: AppBar(
         title: Text(controller.subCategory.name),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: '刷新',
-            onPressed: controller.manualRefresh,
-          ),
+          Obx(() {
+            final isLoading = controller.pageLoadding.value;
+            if (isLoading) {
+              final progress = controller.loadingProgress.value;
+              return Padding(
+                padding: const EdgeInsets.all(10),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: progress > 0 ? progress : null,
+                        strokeWidth: 2.5,
+                      ),
+                      if (progress > 0)
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: '刷新',
+              onPressed: controller.manualRefresh,
+            );
+          }),
           GetBuilder<CategoryDetailController>(
             builder: (ctrl) {
               final isFav =

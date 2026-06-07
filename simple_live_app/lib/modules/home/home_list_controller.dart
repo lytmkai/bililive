@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_core/simple_live_core.dart';
@@ -24,6 +25,9 @@ class HomeListController extends BasePageController<LiveRoomItem> {
   /// 代次计数器：每次 refreshData() +1，异步操作中检测代次变化以中止
   int _generation = 0;
 
+  /// 加载进度 0.0~1.0，供 UI 显示百分比进度圈
+  var loadingProgress = 0.0.obs;
+
   HomeListController(this.site, {this.category}) {
     pageSize = 15;
   }
@@ -44,6 +48,7 @@ class HomeListController extends BasePageController<LiveRoomItem> {
     currentPage = 1;
     list.value = [];
     loadding = false;
+    loadingProgress.value = 0.0;
 
     await loadData();
     if (_generation != gen) return;
@@ -120,7 +125,13 @@ class HomeListController extends BasePageController<LiveRoomItem> {
         }
         totalAdded += added;
 
-        if (!result.hasMore) break;
+        // 更新加载进度
+        loadingProgress.value = (i + 1) / _batchSize;
+
+        if (!result.hasMore) {
+          loadingProgress.value = 1.0;
+          break;
+        }
       } catch (e) {
         debugPrint(
             '[HomeList] getRecommendRooms failed: p$_recApiPage — $e');

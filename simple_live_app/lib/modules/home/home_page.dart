@@ -17,20 +17,38 @@ class HomePage extends GetView<HomeController> {
       appBar: AppBar(
         centerTitle: false,
         leading: Obx(() {
-          final isLoading =
-              controller.currentController.pageLoadding.value;
+          final ctrl = controller.currentController;
+          final isLoading = ctrl.pageLoadding.value;
           if (isLoading) {
-            return const Padding(
-              padding: EdgeInsets.all(12),
+            final progress = ctrl.loadingProgress.value;
+            // 刚开始加载时（progress==0）用不定圈，有进度后用百分比
+            return Padding(
+              padding: const EdgeInsets.all(10),
               child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+                width: 36,
+                height: 36,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: progress > 0 ? progress : null,
+                      strokeWidth: 2.5,
+                    ),
+                    if (progress > 0)
+                      Text(
+                        '${(progress * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           }
           return IconButton(
-            onPressed: () => controller.currentController.refreshData(),
+            onPressed: () => ctrl.refreshData(),
             icon: const Icon(Icons.refresh),
             tooltip: '刷新',
           );

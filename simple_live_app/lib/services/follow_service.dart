@@ -25,6 +25,9 @@ class FollowService extends GetxService {
   /// 是否正在更新
   var updating = false.obs;
 
+  /// 加载进度 0.0~1.0，供关注页显示百分比进度圈
+  var loadProgress = 0.0.obs;
+
   /// 防重入
   bool _loading = false;
 
@@ -52,10 +55,12 @@ class FollowService extends GetxService {
       }
 
       updating.value = true;
+      loadProgress.value = 0.0;
       List<FollowUser> live = [];
       List<FollowUser> notLive = [];
 
-      for (var user in users) {
+      for (var i = 0; i < users.length; i++) {
+        final user = users[i];
         try {
           var siteInfo = Sites.allSites[user.siteId];
           if (siteInfo == null) continue;
@@ -72,6 +77,7 @@ class FollowService extends GetxService {
           user.liveStatus.value = 0;
           notLive.add(user);
         }
+        loadProgress.value = (i + 1) / users.length;
       }
 
       // 原子性设置三个列表的值

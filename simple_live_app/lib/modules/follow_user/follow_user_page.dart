@@ -21,19 +21,40 @@ class FollowUserPage extends GetView<FollowUserController> {
       appBar: AppBar(
         title: const Text("关注用户"),
         leading: Obx(
-          () => FollowService.instance.updating.value
-              ? const IconButton(
-                  onPressed: null,
-                  icon: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+          () {
+            final fs = FollowService.instance;
+            if (fs.updating.value) {
+              final progress = fs.loadProgress.value;
+              return Padding(
+                padding: const EdgeInsets.all(10),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: progress > 0 ? progress : null,
+                        strokeWidth: 2.5,
+                      ),
+                      if (progress > 0)
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
                   ),
-                )
-              : IconButton(
-                  onPressed: controller.refreshData,
-                  icon: const Icon(Icons.refresh),
                 ),
+              );
+            }
+            return IconButton(
+              onPressed: controller.refreshData,
+              icon: const Icon(Icons.refresh),
+            );
+          },
         ),
       ),
       body: Obx(
