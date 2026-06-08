@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -276,9 +277,14 @@ class AudioSettingsPage extends GetView<AppSettingsController> {
       return;
     }
     try {
-      var result = await OpenFilex.open(saveDir);
-      if (result.type != ResultType.done) {
-        SmartDialog.showToast("无法打开文件夹，请手动前往路径查看");
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.xycz.simple_live/open_folder');
+        await channel.invokeMethod('openFolder', {'path': saveDir});
+      } else {
+        var result = await OpenFilex.open(saveDir);
+        if (result.type != ResultType.done) {
+          SmartDialog.showToast("无法打开文件夹，请手动前往路径查看");
+        }
       }
     } catch (e) {
       SmartDialog.showToast("无法打开文件夹，请手动前往路径查看");

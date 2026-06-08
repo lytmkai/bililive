@@ -1052,8 +1052,11 @@ ${error?.stackTrace}''');
   /// 获取保存路径并开始录音
   void _startRecordingWithPath() async {
     // 从预配置路径或默认路径获取保存位置
-    var fileName =
-        "${detail.value?.userName ?? "live"}_${DateTime.now().millisecondsSinceEpoch}.m4a";
+    var now = DateTime.now();
+    var timestamp =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}"
+        "_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}";
+    var fileName = "${detail.value?.userName ?? "live"}_$timestamp.m4a";
     var saveDir = AppSettingsController.instance.audioSavePath.value;
     if (saveDir.isEmpty || !await Directory(saveDir).exists()) {
       var dir = await getApplicationDocumentsDirectory();
