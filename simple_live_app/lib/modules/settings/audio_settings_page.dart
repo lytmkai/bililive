@@ -47,13 +47,27 @@ class AudioSettingsPage extends GetView<AppSettingsController> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12),
                     ),
-                    trailing: TextButton(
-                      onPressed: _selectSavePath,
-                      child: Text(
-                        controller.audioSavePath.value.isNotEmpty
-                            ? "更改"
-                            : "选择",
-                      ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          tooltip: "手动输入路径",
+                          onPressed: _manuallyEditPath,
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: _selectSavePath,
+                          child: Text(
+                            controller.audioSavePath.value.isNotEmpty
+                                ? "更改"
+                                : "选择",
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -262,6 +276,59 @@ class AudioSettingsPage extends GetView<AppSettingsController> {
 
     controller.setAudioSavePath(dir);
     SmartDialog.showToast("音频保存路径已设置");
+  }
+
+  /// 手动输入路径
+  void _manuallyEditPath() {
+    var currentPath = controller.audioSavePath.value;
+    var textController = TextEditingController(text: currentPath);
+    Get.dialog(
+      AlertDialog(
+        title: const Text("手动输入路径"),
+        content: TextField(
+          controller: textController,
+          decoration: const InputDecoration(
+            hintText: "输入存储目录的完整路径",
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+          maxLines: 3,
+          minLines: 1,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("取消"),
+          ),
+          TextButton(
+            onPressed: () async {
+              var dir = textController.text.trim();
+              if (dir.isEmpty) {
+                SmartDialog.showToast("路径不能为空");
+                return;
+              }
+              var dirObj = Directory(dir);
+              if (!dirObj.existsSync()) {
+                SmartDialog.showToast("目录不存在，请检查路径");
+                return;
+              }
+              var testFile = File("$dir/.simple_live_write_test");
+              try {
+                await testFile.writeAsString("test");
+                await testFile.delete();
+              } catch (e) {
+                SmartDialog.showToast("路径不可写，请选择其他目录");
+                return;
+              }
+              Get.back();
+              controller.setAudioSavePath(dir);
+              SmartDialog.showToast("音频保存路径已设置");
+            },
+            child: const Text("保存"),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 打开存储文件夹
