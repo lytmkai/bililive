@@ -48,17 +48,14 @@ class NetImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         loadStateChanged: (e) {
           if (e.extendedImageLoadState == LoadState.loading) {
-            return const Icon(
-              Icons.image,
-              color: Colors.grey,
-              size: 24,
-            );
+            return Container(color: Colors.black);
           }
           if (e.extendedImageLoadState == LoadState.failed) {
-            return const Icon(
-              Icons.broken_image,
-              color: Colors.grey,
-              size: 24,
+            return Container(
+              color: Colors.grey[900],
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 24),
+              ),
             );
           }
           return null;
