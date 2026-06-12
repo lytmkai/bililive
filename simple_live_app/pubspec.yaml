@@ -84,11 +84,11 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: true
   image_path: "assets/logo.png"
   min_sdk_android: 21
-  macos:
-    generate: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/logo_circle.png"
+  adaptive_icon_foreground_inset: 50
 
 flutter:
   uses-material-design: true
