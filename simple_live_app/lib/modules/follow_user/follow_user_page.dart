@@ -73,28 +73,70 @@ class FollowUserPage extends GetView<FollowUserController> {
               onRefresh: () => controller.refreshData(),
             );
           }
-          return MasonryGridView.count(
-            padding: const EdgeInsets.all(8),
-            itemCount: controller.list.length,
-            itemBuilder: (_, i) {
-              var item = controller.list[i];
-              var site = Sites.allSites[item.siteId]!;
-              return FollowUserItem(
-                item: item,
-                onRemove: () => controller.removeItem(item),
-                onTap: () {
-                  AppNavigator.toLiveRoomDetail(
-                    site: site,
-                    roomId: item.roomId,
-                  );
-                },
-              );
-            },
-            crossAxisCount: count,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+          return Column(
+            children: [
+              if (controller.pinnedCount > 0) _buildPinnedHeader(context),
+              Expanded(
+                child: MasonryGridView.count(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                  itemCount: controller.list.length,
+                  itemBuilder: (_, i) {
+                    var item = controller.list[i];
+                    var site = Sites.allSites[item.siteId]!;
+                    return FollowUserItem(
+                      item: item,
+                      onRemove: () => controller.removeItem(item),
+                      onPinToggled: () => controller.filterData(),
+                      onTap: () {
+                        AppNavigator.toLiveRoomDetail(
+                          site: site,
+                          roomId: item.roomId,
+                        );
+                      },
+                    );
+                  },
+                  crossAxisCount: count,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildPinnedHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(80),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).dividerColor,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.push_pin,
+            size: 14,
+            color: Colors.amber,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '置顶的直播间',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

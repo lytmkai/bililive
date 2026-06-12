@@ -114,9 +114,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             title: Obx(
               () => controller.isRecording.value
                   ? Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(controller.detail.value?.title ?? "直播间"),
+                        Flexible(
+                          child: Text(
+                            controller.detail.value?.title ?? "直播间",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Container(
                           width: 8,

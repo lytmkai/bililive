@@ -1,7 +1,7 @@
 name: simple_live_app
 version: 1.11.4+11104
 publish_to: none
-description: "Simple Live APP"
+description: "Bililive - 简简单单看B站直播"
 environment:
   sdk: ">=3.0.5 <4.0.0"
 

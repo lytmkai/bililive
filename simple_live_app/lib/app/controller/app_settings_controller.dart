@@ -23,6 +23,9 @@ class AppSettingsController extends GetxController {
 
   var homeDefaultCategory = Rxn<SavedSubCategory>();
 
+  /// 收藏页置顶的直播间 ID 集合
+  var pinnedFollowIds = <String>{}.obs;
+
   @override
   void onInit() {
     themeMode.value = LocalStorageService.instance
@@ -154,6 +157,8 @@ class AppSettingsController extends GetxController {
 
     loadHomeDefaultCategory();
 
+    loadPinnedFollowIds();
+
     super.onInit();
   }
 
@@ -219,6 +224,42 @@ class AppSettingsController extends GetxController {
       LocalStorageService.instance
           .setValue(LocalStorageService.kHomeDefaultCategory, encoded);
     }
+  }
+
+  /// 从本地存储加载置顶直播间 ID 列表
+  void loadPinnedFollowIds() {
+    final raw = LocalStorageService.instance
+        .getValue<String>(LocalStorageService.kPinnedFollowUsers, '');
+    if (raw.isEmpty) return;
+    try {
+      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+      final ids = decoded.cast<String>().toSet();
+      // ignore: invalid_use_of_protected_member
+      pinnedFollowIds.value = ids;
+    } catch (_) {
+      // ignore: invalid_use_of_protected_member
+      pinnedFollowIds.value = {};
+    }
+  }
+
+  /// 保存置顶直播间 ID 列表到本地存储
+  Future<void> savePinnedFollowIds() async {
+    final encoded = jsonEncode(pinnedFollowIds.toList());
+    await LocalStorageService.instance
+        .setValue(LocalStorageService.kPinnedFollowUsers, encoded);
+  }
+
+  /// 判断直播间是否被置顶
+  bool isFollowPinned(String id) => pinnedFollowIds.contains(id);
+
+  /// 切换置顶状态
+  Future<void> toggleFollowPin(String id) async {
+    if (pinnedFollowIds.contains(id)) {
+      pinnedFollowIds.remove(id);
+    } else {
+      pinnedFollowIds.add(id);
+    }
+    await savePinnedFollowIds();
   }
 
   void setNoFirstRun() {

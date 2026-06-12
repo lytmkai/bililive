@@ -180,6 +180,9 @@ class LocalStorageService extends GetxService {
   /// 录音不再显示确认
   static const String kRecordingNoConfirm = "RecordingNoConfirm";
 
+  /// 收藏页置顶的直播间 ID 列表（JSON 序列化）
+  static const String kPinnedFollowUsers = "PinnedFollowUsers";
+
   late Box settingsBox;
   late Box<String> shieldBox;
 

@@ -106,6 +106,11 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   Timer? _recordingTimer;
   int _recordingSeconds = 0;
 
+  /// 录音自动重连状态
+  int _recordingRetryCount = 0;
+  static const int _maxRecordingRetries = 3;
+  String _recordingOutputPath = "";
+
   /// 直播间加载失败
   var loadError = false.obs;
   Error? error;
@@ -1067,6 +1072,24 @@ ${error?.stackTrace}''');
     _startRecording(outputPath);
   }
 
+  /// 获取最佳的录音用播放地址
+  /// 优先选择 FLV 地址（HTTP-FLV 为持续连接，比 HLS 更稳定），
+  /// 其次排除 mcdn 类型的地址，最后回退到第一个可用地址。
+  String _getBestRecordUrl() {
+    for (var url in playUrls) {
+      if (url.contains('.flv') && !url.contains('mcdn')) {
+        return url;
+      }
+    }
+    for (var url in playUrls) {
+      if (url.contains('.flv')) {
+        return url;
+      }
+    }
+    // 回退到第一个地址
+    return playUrls.first;
+  }
+
   /// 构建FFmpeg参数列表
   List<String> _buildFFmpegArgs(String outputPath) {
     var args = <String>['-y'];
@@ -1079,7 +1102,7 @@ ${error?.stackTrace}''');
       args.addAll(['-headers', '$headerStr\r\n']);
     }
 
-    // 重连参数（仅使用 FFmpeg n8.0 支持的顶级选项）
+    // 重连参数
     args.addAll([
       '-reconnect',
       '1',
@@ -1091,19 +1114,47 @@ ${error?.stackTrace}''');
       '5',
     ]);
 
-    // 输入输出（流拷贝，零编码，保留原厂AAC音质）
-    args.addAll(['-i', playUrls.first]);
+    // 输入地址（优先 FLV，更稳定）
+    var recordUrl = _getBestRecordUrl();
+    args.addAll(['-i', recordUrl]);
+
+    // 输出参数：流拷贝音频、不录制视频、碎帧MP4（断连后文件仍可播放）
     args.addAll(['-c:a', 'copy', '-vn']);
-    args.addAll(['-f', 'mp4', outputPath]);
+    args.addAll([
+      '-f',
+      'mp4',
+      '-movflags',
+      'frag_keyframe+empty_moov',
+      outputPath,
+    ]);
 
     return args;
   }
 
-  /// 开始录音
-  void _startRecording(String outputPath) async {
-    var args = _buildFFmpegArgs(outputPath);
+  /// 刷新播放地址用于录音重连
+  Future<void> _refreshPlayUrlForRecording() async {
+    try {
+      if (detail.value == null || currentQuality < 0) return;
+      var playUrl = await site.liveSite
+          .getPlayUrls(detail: detail.value!, quality: qualites[currentQuality]);
+      if (playUrl.urls.isNotEmpty) {
+        playUrls.value = playUrl.urls;
+        playHeaders = playUrl.headers;
+        Log.logPrint("录音刷新播放地址成功: ${playUrl.urls.length} 条");
+      }
+    } catch (e) {
+      Log.logPrint("录音刷新播放地址失败: $e");
+    }
+  }
 
-    Log.logPrint("开始录音: ${args.join(' ')}");
+  /// 启动/重启 FFmpeg 录音进程（不重置计时器）
+  Future<void> _startFFmpegSession() async {
+    var args = _buildFFmpegArgs(_recordingOutputPath);
+    if (_recordingRetryCount == 0) {
+      Log.logPrint("开始录音: ${args.join(' ')}");
+    } else {
+      Log.logPrint("录音重连(第$_recordingRetryCount次): ${args.join(' ')}");
+    }
 
     var session = await FFmpegKit.executeWithArgumentsAsync(
       args,
@@ -1111,23 +1162,51 @@ ${error?.stackTrace}''');
         var returnCode = await session.getReturnCode();
         if (ReturnCode.isSuccess(returnCode)) {
           Log.logPrint("录音成功完成");
+          _cleanupRecording();
         } else if (ReturnCode.isCancel(returnCode)) {
           Log.logPrint("录音已取消");
+          _cleanupRecording();
         } else {
           var err = await session.getOutput();
           Log.logPrint("录音失败: $err");
+
+          // 自动重连：刷新播放地址后重启 FFmpeg
+          if (_recordingRetryCount < _maxRecordingRetries) {
+            _recordingRetryCount++;
+            Log.logPrint(
+                "录音重连: 第$_recordingRetryCount/$_maxRecordingRetries 次");
+            SmartDialog.showToast("录音断连，正在尝试重连...");
+            await _refreshPlayUrlForRecording();
+            await _startFFmpegSession();
+            return;
+          }
+
+          // 达到最大重试次数，停止录音
           SmartDialog.showToast("录音异常结束");
+          _cleanupRecording();
         }
-        _recordingTimer?.cancel();
-        _recordingTimer = null;
-        isRecording.value = false;
-        _recordingSessionId = null;
       },
       (log) {
         Log.logPrint("FFmpeg: ${log.getMessage()}");
       },
     );
     _recordingSessionId = session.getSessionId();
+  }
+
+  /// 清理录音状态
+  void _cleanupRecording() {
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+    isRecording.value = false;
+    _recordingSessionId = null;
+  }
+
+  /// 开始录音
+  void _startRecording(String outputPath) async {
+    _recordingOutputPath = outputPath;
+    _recordingRetryCount = 0;
+
+    await _startFFmpegSession();
 
     isRecording.value = true;
     _recordingSeconds = 0;

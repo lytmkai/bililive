@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/utils.dart';
@@ -51,19 +52,44 @@ class FollowUserController extends BasePageController<FollowUser> {
     return [];
   }
 
+  /// 置顶直播间数量
+  int get pinnedCount {
+    final pinnedIds = AppSettingsController.instance.pinnedFollowIds;
+    var count = 0;
+    for (final item in list) {
+      if (pinnedIds.contains(item.id)) count++;
+    }
+    return count;
+  }
+
   void filterData() {
     // 先拷贝再赋值，避免遍历时 RxList 被并发修改
+    List<FollowUser> source;
     switch (filterMode.value) {
       case 0:
-        list.assignAll(FollowService.instance.followList.toList());
+        source = FollowService.instance.followList.toList();
         break;
       case 1:
-        list.assignAll(FollowService.instance.liveList.toList());
+        source = FollowService.instance.liveList.toList();
         break;
       case 2:
-        list.assignAll(FollowService.instance.notLiveList.toList());
+        source = FollowService.instance.notLiveList.toList();
         break;
+      default:
+        source = [];
     }
+
+    // 置顶排序：pinned 项排前面
+    final pinnedIds = AppSettingsController.instance.pinnedFollowIds;
+    source.sort((a, b) {
+      final aPinned = pinnedIds.contains(a.id);
+      final bPinned = pinnedIds.contains(b.id);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return 0;
+    });
+
+    list.assignAll(source);
   }
 
   void setFilterMode(int mode) {

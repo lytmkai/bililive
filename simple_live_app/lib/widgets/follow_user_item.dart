@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
@@ -10,11 +11,13 @@ class FollowUserItem extends StatelessWidget {
   final FollowUser item;
   final Function()? onRemove;
   final Function()? onTap;
+  final VoidCallback? onPinToggled;
   final bool playing;
   const FollowUserItem({
     required this.item,
     this.onRemove,
     this.onTap,
+    this.onPinToggled,
     this.playing = false,
     Key? key,
   }) : super(key: key);
@@ -90,9 +93,39 @@ class FollowUserItem extends StatelessWidget {
             )
           : onRemove == null
               ? null
-              : IconButton(
-                  onPressed: onRemove,
-                  icon: const Icon(Remix.dislike_line),
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Obx(() {
+                      final isPinned = AppSettingsController
+                          .instance.pinnedFollowIds
+                          .contains(item.id);
+                      return IconButton(
+                        onPressed: () {
+                          AppSettingsController.instance
+                              .toggleFollowPin(item.id);
+                          onPinToggled?.call();
+                        },
+                        icon: Icon(
+                          isPinned
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined,
+                          size: 20,
+                          color: isPinned ? Colors.amber : Colors.grey,
+                        ),
+                        tooltip: isPinned ? '取消置顶' : '置顶',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                      );
+                    }),
+                    IconButton(
+                      onPressed: onRemove,
+                      icon: const Icon(Remix.dislike_line),
+                    ),
+                  ],
                 ),
       onTap: onTap,
     );
