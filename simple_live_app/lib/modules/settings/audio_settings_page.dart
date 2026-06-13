@@ -264,16 +264,6 @@ class AudioSettingsPage extends GetView<AppSettingsController> {
     }
     if (dir == null) return;
 
-    // 验证路径可用
-    var testFile = File("$dir/.simple_live_write_test");
-    try {
-      await testFile.writeAsString("test");
-      await testFile.delete();
-    } catch (e) {
-      SmartDialog.showToast("路径不可写，请选择其他目录");
-      return;
-    }
-
     controller.setAudioSavePath(dir);
     SmartDialog.showToast("音频保存路径已设置");
   }
@@ -310,14 +300,6 @@ class AudioSettingsPage extends GetView<AppSettingsController> {
               var dirObj = Directory(dir);
               if (!dirObj.existsSync()) {
                 SmartDialog.showToast("目录不存在，请检查路径");
-                return;
-              }
-              var testFile = File("$dir/.simple_live_write_test");
-              try {
-                await testFile.writeAsString("test");
-                await testFile.delete();
-              } catch (e) {
-                SmartDialog.showToast("路径不可写，请选择其他目录");
                 return;
               }
               Get.back();
