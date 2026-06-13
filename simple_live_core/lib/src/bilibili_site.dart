@@ -381,6 +381,8 @@ class BiliBiliSite implements LiveSite {
         cookie: cookie,
       ),
       showTime: liveStartTime, // 将 liveStartTime 赋值给 showTime 字段
+      areaName: asT<String?>(roomInfo["room_info"]["area_name"]),
+      parentAreaName: asT<String?>(roomInfo["room_info"]["parent_area_name"]),
     );
   }
 

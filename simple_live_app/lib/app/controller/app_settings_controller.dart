@@ -570,8 +570,10 @@ class AppSettingsController extends GetxController {
   /// 音频保存路径
   var audioSavePath = "".obs;
   void setAudioSavePath(String e) {
-    audioSavePath.value = e;
+    // 确保路径以 / 结尾，后续拼接文件名时语义清晰
+    var normalized = e.endsWith('/') ? e : '$e/';
+    audioSavePath.value = normalized;
     LocalStorageService.instance
-        .setValue(LocalStorageService.kAudioSavePath, e);
+        .setValue(LocalStorageService.kAudioSavePath, normalized);
   }
 }

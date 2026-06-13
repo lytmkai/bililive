@@ -43,6 +43,12 @@ class LiveRoomDetail {
   /// 显示时间
   final String? showTime;
 
+  /// 分区名称（子分区，如"英雄联盟"）
+  final String? areaName;
+
+  /// 父分区名称（大分区，如"网游"）
+  final String? parentAreaName;
+
   LiveRoomDetail({
     required this.roomId,
     required this.title,
@@ -58,6 +64,8 @@ class LiveRoomDetail {
     required this.url,
     this.isRecord = false,
     this.showTime,
+    this.areaName,
+    this.parentAreaName,
   });
 
   @override
@@ -77,6 +85,8 @@ class LiveRoomDetail {
       "url": url,
       "isRecord": isRecord,
       "showTime": showTime,
+      "areaName": areaName,
+      "parentAreaName": parentAreaName,
     });
   }
 }

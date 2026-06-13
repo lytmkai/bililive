@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/models/db/fav_category.dart';
+import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 
@@ -68,19 +69,27 @@ class CategoryDetailController extends BasePageController<LiveRoomItem> {
   }
 
   /// 收藏/取消收藏当前子分区
+  ///
+  /// 同时同步到自定义分区列表（[CustomCategoryViewController]），
+  /// 确保分类页「自定义分区」视图能正确显示收藏的分区。
   void toggleFavorite() {
     final db = DBService.instance;
     final sub = subCategory;
+    final customCtrl = Get.find<CustomCategoryViewController>();
+    final parentName = parentAreaName ?? '';
+
     if (db.isFavCategory(sub.id)) {
       db.removeFavCategory(sub.id);
+      customCtrl.remove(sub.id);
     } else {
       db.addFavCategory(FavCategory(
         id: sub.id,
-        parentAreaName: parentAreaName ?? '',
+        parentAreaName: parentName,
         areaName: sub.name,
         areaId: sub.id,
         parentAreaId: sub.parentId,
       ));
+      customCtrl.add(sub, parentName);
     }
     update();
   }

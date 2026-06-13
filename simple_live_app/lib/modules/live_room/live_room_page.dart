@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
@@ -123,20 +124,61 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          controller.recordingDuration.value,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.red,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 6,
+                              sigmaY: 6,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    controller.recordingDuration.value,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.redAccent,
+                                    ),
+                                  ),
+                                  Obx(() {
+                                    var size =
+                                        controller.recordingFileSize.value;
+                                    return size.isNotEmpty
+                                        ? Padding(
+                                            padding: const EdgeInsets.only(
+                                                left: 10),
+                                            child: Text(
+                                              size,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          )
+                                        : const SizedBox.shrink();
+                                  }),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -370,10 +412,18 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    controller.detail.value?.userName ?? "",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          controller.detail.value?.userName ?? "",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      AppStyle.hGap8,
+                      _buildAreaTag(),
+                    ],
                   ),
                   AppStyle.vGap4,
                   Row(
@@ -500,6 +550,26 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             ),
           ],
         ),
+    );
+  }
+
+  Widget _buildAreaTag() {
+    var areaName = controller.detail.value?.areaName;
+    if (areaName == null || areaName.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: Get.isDarkMode
+            ? Colors.white.withAlpha(25)
+            : Colors.black.withAlpha(15),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        areaName,
+        style: const TextStyle(fontSize: 10, color: Colors.grey),
+      ),
     );
   }
 
