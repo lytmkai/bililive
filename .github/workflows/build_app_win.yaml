@@ -1,4 +1,4 @@
-name: app-build-action
+name: app-build-win
 #推送Tag时触发
 on:
   workflow_dispatch:
